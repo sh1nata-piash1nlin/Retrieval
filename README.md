@@ -16,6 +16,8 @@ conda activate retrieval
 ```bash
 pip install -r requirements.txt
 ```
+4. Dataset:
+Download the keyframe dataset from Kaggle to /static folder
 
 ## Project Structure
 
@@ -34,5 +36,4 @@ pip install -r requirements.txt
 python app.py
 ```
 It will run on port 2714
-
 
