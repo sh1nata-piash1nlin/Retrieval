@@ -18,7 +18,7 @@ cd Retrieval
 2. Create and activate a Conda environment
 ```bash
 conda create -n preAIC python=3.9
-conda activate retrieval
+conda activate preAIC
 ```
 
 3. Install the required packages
