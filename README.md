@@ -2,15 +2,6 @@
 
 This project is a web-based video frame retrieval system that provides various search functionalities including single search, hierarchy search, subtitle match, and similar image search.
 
-## Features
-
-- Single Search
-- Hierarchy Search
-- Subtitle Match Search
-- Similar Image Search
-- Customizable K-value settings
-- Group images per video configuration
-
 ## Prerequisites
 
 - Python 3.8 or higher
