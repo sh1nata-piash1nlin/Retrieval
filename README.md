@@ -2,15 +2,6 @@
 
 This project is a web-based video frame retrieval system that provides various search functionalities including single search, hierarchy search, subtitle match, and similar image search.
 
-## Features
-
-- Single Search
-- Hierarchy Search
-- Subtitle Match Search
-- Similar Image Search
-- Customizable K-value settings
-- Group images per video configuration
-
 ## Prerequisites
 
 - Python 3.8 or higher
@@ -20,13 +11,13 @@ This project is a web-based video frame retrieval system that provides various s
 
 1. Clone the repository
 ```bash
-git clone https://github.com/sh1nata/Retrieval.git
+git clone https://github.com/sh1nata-piash1nlin/Retrieval.git
 cd Retrieval
 ```
 
 2. Create and activate a Conda environment
 ```bash
-conda create -n retrieval python=3.8
+conda create -n preAIC python=3.9
 conda activate retrieval
 ```
 
@@ -39,13 +30,13 @@ pip install -r requirements.txt
 
 ```
 .
-├── app.py              # Flask application main file
-├── requirements.txt    # Python dependencies
+├── app.py              
+├── requirements.txt    
 ├── static/
-│   ├── css/           # CSS styles
-│   ├── js/            # JavaScript files
-│   └── keyframe/      # Directory for keyframe images (not included in repo)
-└── templates/         # HTML templates
+│   ├── css/           
+│   ├── js/            
+│   └── keyframe/      
+└── templates/         
 ```
 
 ## Usage
@@ -60,13 +51,7 @@ conda activate retrieval
 python app.py
 ```
 
-3. Open your web browser and navigate to `http://localhost:5000`
-
-## Configuration
-
-- **K Value**: Adjust the number of results returned (default: 30)
-- **K1 Value** (Hierarchy Search): Configure the first-level results (default: 5)
-- **Images per Video**: Set the number of images displayed per video (default: 4)
+3. Open your web browser and navigate to `http://localhost:2714`
 
 ## Note
 
@@ -82,6 +67,4 @@ static/keyframe/
             └── ...
 ```
 
-## Contributing
 
-Feel free to submit issues and enhancement requests.
