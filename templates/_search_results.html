@@ -1,0 +1,11 @@
+<div class="row row-cols-5 g-3">
+  {% for result in results %}
+  <div class="col">
+    <div class="img-card" style="border-color: {{ result.border_color }};">
+      <img src="{{ result.image_url }}" alt="Frame" />
+      <div class="img-label" style="--img-label-color: {{ result.border_color }};">{{ result.video_id }}</div>
+      <div class="img-number">{{ result.frame_num }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div> 
