@@ -95,12 +95,30 @@ function openTab(label) {
 function toggleSidebarControls(label) {
   const kRow = document.getElementById('kRowContainer');
   const hierarchyKRow = document.getElementById('hierarchyKRowContainer');
-  if (label === 'Hierarchy Search') {
-    kRow.style.display = 'none';
-    hierarchyKRow.style.display = '';
-  } else {
-    kRow.style.display = '';
-    hierarchyKRow.style.display = 'none';
+  const groupImagesContainer = document.getElementById('groupImagesPerVideoContainer');
+
+  // Hide all controls first
+  kRow.style.display = 'none';
+  hierarchyKRow.style.display = 'none';
+  groupImagesContainer.style.display = 'none';
+
+  // Show relevant controls based on search type
+  switch (label) {
+    case 'Single Search':
+      kRow.style.display = 'block';
+      break;
+    case 'Hierarchy Search':
+      hierarchyKRow.style.display = 'block';
+      break;
+    case 'Similar Image Search':
+      kRow.style.display = 'block';
+      groupImagesContainer.style.display = 'block';
+      break;
+    case 'Subtitle Match':
+      kRow.style.display = 'block';
+      break;
+    default:
+      kRow.style.display = 'block';
   }
 }
 
@@ -120,6 +138,12 @@ dropdownMenu.addEventListener('click', (e) => {
   // Open / activate tab and update button text
   openTab(label);
   setDropdownLabel(label);
+});
+
+// Listen for tab changes
+tabBar.addEventListener('shown.bs.tab', (e) => {
+  const label = e.target.textContent.trim().split('\n')[0].trim();
+  toggleSidebarControls(label);
 });
 
 // Close tab via delegation
