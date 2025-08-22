@@ -12,7 +12,7 @@ TextEncoders["bert"] = dict(
 TextEncoders["bert_large"] = dict(
     name="bert_large",
     pretrained="bert-large-uncased",
-    config="/workspace/huy_aichallenge/InternVideo/InternVideo2/multi_modality/configs/config_bert_large.json",
+    config="/workspace/huy_aichallenge/models/InternVideo/InternVideo2/multi_modality/configs/config_bert_large.json",
     d_model=1024,
     fusion_layer=19,
 )

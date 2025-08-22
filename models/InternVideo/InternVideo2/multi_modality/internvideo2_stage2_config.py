@@ -6,7 +6,7 @@ from configs.model import *
 num_workers = 6
 
 # ========================= input ==========================
-num_frames = 4
+num_frames = 8
 num_frames_test = 4
 batch_size = 8
 batch_size_test = 4
@@ -50,7 +50,7 @@ model = dict(
         clip_norm_type='l2',
         clip_return_layer=6,
         clip_student_return_interval=1,
-        pretrained='/workspace/huy_aichallenge/InternVideo/InternVideo2/multi_modality/weights/InternVideo2-stage2_1b-224p-f4.pt',
+        pretrained='/workspace/huy_aichallenge/models/InternVideo/InternVideo2/multi_modality/weights/InternVideo2-stage2_1b-224p-f4.pt',
         use_checkpoint=True,
         checkpoint_num=40,
         use_flash_attn=use_half_precision,
@@ -92,7 +92,7 @@ compile_model = False
 
 # ========================= optimizer ==========================
 dist_url = "env://"
-device = "cuda"
+device = "cuda:1"
 mode = "pt"
 
 # ========================= others ==========================

@@ -2,7 +2,7 @@ bash
 #!/bin/bash
 
 # Parent directory containing the keyframes_Videos_LXX folders
-PARENT_DIR="/media/hoangtv/0f9d3910-0ff9-406c-92e1-c2c8170ca6f41/data_aichallenge2025"
+PARENT_DIR="workspace/data_aichallenge2025"
 
 # Path to the Python script
 PYTHON_SCRIPT="Internvideo_feats.py"

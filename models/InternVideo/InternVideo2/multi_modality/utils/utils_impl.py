@@ -13,11 +13,11 @@ ROOT = FILE.parents[1]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
     
-from models.backbones.internvideo2 import pretrain_internvideo2_1b_patch14_224
-from models.backbones.bert.builder import build_bert
-from models.criterions import get_sim
-from models.backbones.internvideo2.pos_embed import interpolate_pos_embed_internvideo2_new
-from models.backbones.bert.tokenization_bert import BertTokenizer
+from multi_modality.models.backbones.internvideo2 import pretrain_internvideo2_1b_patch14_224
+from multi_modality.models.backbones.bert.builder import build_bert
+from multi_modality.models.criterions import get_sim
+from multi_modality.models.backbones.internvideo2.pos_embed import interpolate_pos_embed_internvideo2_new
+from multi_modality.models.backbones.bert.tokenization_bert import BertTokenizer
 
 
 def _frame_from_video(video):
@@ -94,9 +94,9 @@ def setup_internvideo2(config: dict):
     if config.get('compile_model', False):
         torch.set_float32_matmul_precision('high')
         model = torch.compile(model)
-
-    model = model.to(torch.device(config.device))
-    model_without_ddp = model
+    # print(config)
+    # Move model to the target device using to_empty() if meta tensors are used
+    model = model.to_empty(device=torch.device(config.device))  # Replace model.to()
 
     if (config.pretrained_path.strip() and (os.path.isfile(config.pretrained_path)) or "s3://" in config.pretrained_path):
         checkpoint = torch.load(config.pretrained_path, map_location="cpu")
@@ -104,27 +104,27 @@ def setup_internvideo2(config: dict):
             if "model" in checkpoint.keys():
                 state_dict = checkpoint["model"]
             else:
-                state_dict = checkpoint["module"] # This is a deepspeed stage 1 model
+                state_dict = checkpoint["module"]  # This is a deepspeed stage 1 model
         except:  
             state_dict = checkpoint
 
         if config.get('origin_num_frames', None) is not None:
             a = len(state_dict)
-            interpolate_pos_embed_internvideo2_new(state_dict, model_without_ddp.vision_encoder, orig_t_size=config.origin_num_frames)
+            interpolate_pos_embed_internvideo2_new(state_dict, model.vision_encoder, orig_t_size=config.origin_num_frames)
             assert a == len(state_dict), state_dict.keys()
 
-        msg = model_without_ddp.load_state_dict(state_dict, strict=False)
+        msg = model.load_state_dict(state_dict, strict=False)
         print(f"load_state_dict: {msg}")
     
     if config.get('use_bf16', False):
-        model_without_ddp = model_without_ddp.to(torch.bfloat16)
+        model = model.to(torch.bfloat16)
     elif config.get('use_half_precision', False):
-        model_without_ddp = model_without_ddp.to(torch.float16)
+        model = model.to(torch.float16)
     else:
-        model_without_ddp = model_without_ddp.to(torch.float32)
+        model = model.to(torch.float32)
     
-    model_without_ddp.eval()
-    return (model_without_ddp, tokenizer,)
+    model.eval()
+    return (model, tokenizer,)
 
 
 class InternVideo2_Stage2(nn.Module):
