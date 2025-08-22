@@ -3,6 +3,7 @@ const ICONS = {
   "InternVideo2 Search": "fa-solid fa-video",
   "blip2 Search": "fa-solid fa-robot",
   "bge-m3 Search": "fa-solid fa-brain",
+  "FDP Search": "fa-solid fa-database",
   "Fusion Search": "fa-regular fa-circle",
   "Local Search": "fa-regular fa-gem",
   "Group Search": "fa-solid fa-users",
@@ -51,6 +52,19 @@ const TEMPLATES = {
     </div>
     <div class="search-results">
       <!-- Search results will be loaded here -->
+    </div>
+  `,
+  "FDP Search": () => `
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div></div>
+      <div class="search-bar w-75 d-flex align-items-center gap-2">
+        <input type="text" class="form-control" placeholder="Nhập mô tả tìm kiếm FDP..." />
+        <button class="btn btn-info" id="fdp-search-btn">Search</button>
+      </div>
+      <div></div>
+    </div>
+    <div class="search-results">
+      <!-- FDP search results will be loaded here -->
     </div>
   `,
   "OCR Match": () => `
