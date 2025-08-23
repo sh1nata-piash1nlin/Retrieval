@@ -13,11 +13,14 @@ app = Flask(__name__)
 
 # ----------------- Helpers -----------------
 
-# Define the base directory for keyframes
-KEYFRAMES_DIRS = [
-    os.path.join(app.static_folder, 'keyframe', 'Keyframes_L01'),
-    os.path.join(app.static_folder, 'keyframe', 'Keyframes_L02')
-]
+# Dynamically discover all keyframe video folders
+def get_keyframe_video_dirs():
+    keyframe_root = os.path.join(app.static_folder, 'keyframe')
+    if not os.path.exists(keyframe_root):
+        return []
+    # Only include directories that start with 'keyframes_Videos_'
+    return [os.path.join(keyframe_root, d) for d in os.listdir(keyframe_root)
+            if os.path.isdir(os.path.join(keyframe_root, d)) and d.startswith('keyframes_Videos_')]
 
 # Fixed color palette for borders
 BORDER_COLORS = [
@@ -27,15 +30,13 @@ BORDER_COLORS = [
 
 def get_video_folders():
     video_folders = []
-    for base_dir in KEYFRAMES_DIRS:
-        keyframes_path = os.path.join(base_dir, 'keyframes')
-        if os.path.exists(keyframes_path):
-            for video_name in sorted(os.listdir(keyframes_path)):
-                video_path = os.path.join(keyframes_path, video_name)
-                if os.path.isdir(video_path):
-                    # base_dir_name will be 'Keyframes_L01' or 'Keyframes_L02'
-                    base_dir_name = os.path.basename(base_dir)
-                    video_folders.append((video_name, video_path, base_dir_name))
+    for base_dir in get_keyframe_video_dirs():
+        # Each base_dir is like /static/keyframe/keyframes_Videos_L21
+        for video_name in sorted(os.listdir(base_dir)):
+            video_path = os.path.join(base_dir, video_name)
+            if os.path.isdir(video_path):
+                base_dir_name = os.path.basename(base_dir)
+                video_folders.append((video_name, video_path, base_dir_name))
     return video_folders
 
 def sample_images_from_videos(num_images=30, images_per_video=(3,4)):
@@ -53,7 +54,7 @@ def sample_images_from_videos(num_images=30, images_per_video=(3,4)):
             results.append({
                 'video_id': vid,
                 'frame_num': os.path.splitext(img)[0],
-                'image_url': f'/static/keyframe/{base_name}/keyframes/{vid}/{img}',
+                'image_url': f'/static/keyframe/{base_name}/{vid}/{img}',
                 'border_color': border_color
             })
         if len(results) >= num_images:
@@ -98,7 +99,7 @@ def hierarchy_search():
             results.append({
                 'video_id': vid,
                 'frame_num': os.path.splitext(img)[0],
-                'image_url': f'/static/keyframe/{base_name}/keyframes/{vid}/{img}',
+                'image_url': f'/static/keyframe/{base_name}/{vid}/{img}',
                 'border_color': color
             })
     results = results[:k]

@@ -1,24 +1,26 @@
 // Icons for each search type
 const ICONS = {
-  "Single Search": "fa-solid fa-magnifying-glass",
+  "InternVideo2 Search": "fa-solid fa-video",
+  "blip2 Search": "fa-solid fa-robot",
+  "bge-m3 Search": "fa-solid fa-brain",
+  "FDP Search": "fa-solid fa-database",
   "Fusion Search": "fa-regular fa-circle",
   "Local Search": "fa-regular fa-gem",
   "Group Search": "fa-solid fa-users",
-  "Hierarchy Search": "fa-solid fa-layer-group",
-  "Subtitle Match": "fa-solid fa-align-left",
   "OCR Match": "fa-regular fa-star",
+  "Subtitle Match": "fa-solid fa-align-left",
   "Similar Image Search": "fa-regular fa-image",
   "Similar Frame Search": "fa-solid fa-image"
 };
 
 // HTML templates for each tab (replace with your real markup / forms)
 const TEMPLATES = {
-  "Single Search": () => `
+  "InternVideo2 Search": () => `
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div></div>
       <div class="search-bar w-75 d-flex align-items-center gap-2">
         <input type="text" class="form-control" placeholder="Nhập mô tả tìm kiếm..." />
-        <button class="btn btn-success" id="single-search-btn">Search</button>
+        <button class="btn btn-success" id="internvideo2-search-btn">Search</button>
       </div>
       <div></div>
     </div>
@@ -26,17 +28,49 @@ const TEMPLATES = {
       <!-- Search results will be loaded here -->
     </div>
   `,
-  "Hierarchy Search": () => `
+  "blip2 Search": () => `
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div></div>
       <div class="search-bar w-75 d-flex align-items-center gap-2">
         <input type="text" class="form-control" placeholder="Nhập mô tả tìm kiếm..." />
-        <button class="btn btn-primary" id="hierarchy-search-btn">Search</button>
+        <button class="btn btn-primary" id="blip2-search-btn">Search</button>
       </div>
       <div></div>
     </div>
-    <div class="hierarchy-search-results">
-      <!-- Hierarchy search results will be loaded here -->
+    <div class="search-results">
+      <!-- Search results will be loaded here -->
+    </div>
+  `,
+  "bge-m3 Search": () => `
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div></div>
+      <div class="search-bar w-75 d-flex align-items-center gap-2">
+        <input type="text" class="form-control" placeholder="Nhập mô tả tìm kiếm..." />
+        <button class="btn btn-primary" id="bge-m3-search-btn">Search</button>
+      </div>
+      <div></div>
+    </div>
+    <div class="search-results">
+      <!-- Search results will be loaded here -->
+    </div>
+  `,
+  "FDP Search": () => `
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div></div>
+      <div class="search-bar w-75 d-flex align-items-center gap-2">
+        <input type="text" class="form-control" placeholder="Nhập mô tả tìm kiếm FDP..." />
+        <button class="btn btn-info" id="fdp-search-btn">Search</button>
+      </div>
+      <div></div>
+    </div>
+    <div class="search-results">
+      <!-- FDP search results will be loaded here -->
+    </div>
+  `,
+  "OCR Match": () => `
+    <div class="mb-3 d-flex gap-2">
+      <input type="text" class="form-control" placeholder="Nhập nội dung OCR cần tìm…" />
+      <button class="btn btn-primary">Search OCR</button>
     </div>
   `,
   "Subtitle Match": () => `
@@ -144,6 +178,21 @@ dropdownMenu.addEventListener('click', (e) => {
 tabBar.addEventListener('shown.bs.tab', (e) => {
   const label = e.target.textContent.trim().split('\n')[0].trim();
   toggleSidebarControls(label);
+  setDropdownLabel(label); // Update dropdown label to match active tab
+  // Highlight dropdown when tab is selected
+  dropdownMenu.classList.add('selected-tab');
+});
+
+// Remove highlight when no tab is selected (optional, e.g. on tab close)
+tabBar.addEventListener('click', (e) => {
+  if (e.target.matches('[data-close]')) {
+    setTimeout(() => {
+      // If no tab is active, remove highlight
+      if (!tabBar.querySelector('.nav-link.active')) {
+        dropdownMenu.classList.remove('selected-tab');
+      }
+    }, 100);
+  }
 });
 
 // Close tab via delegation
@@ -167,52 +216,10 @@ tabBar.addEventListener('click', (e) => {
   }
 });
 
-// Event listener for the single search button (using event delegation)
-document.addEventListener('click', async (e) => {
-  if (e.target && e.target.id === 'single-search-btn') {
-    const searchInput = e.target.previousElementSibling;
-    const query = searchInput.value;
-    const resultsContainer = e.target.closest('.tab-pane').querySelector('.search-results');
+// ...existing code...
 
-    const formData = new FormData();
-    formData.append('query', query);
+// You can add event listeners for new search buttons here if needed
 
-    try {
-      const response = await fetch('/search', {
-        method: 'POST',
-        body: formData
-      });
-      resultsContainer.innerHTML = await response.text();
-    } catch (error) {
-      console.error('Error fetching search results:', error);
-      resultsContainer.innerHTML = '<p class="text-danger">Error loading results.</p>';
-    }
-  }
-  // Hierarchy Search event
-  if (e.target && e.target.id === 'hierarchy-search-btn') {
-    const searchInput = e.target.closest('.search-bar').querySelector('input[type="text"]');
-    const query = searchInput.value;
-    const k = document.querySelector('#hierarchyKRowContainer #kValue').value;
-    const k1 = document.querySelector('#hierarchyKRowContainer #hierarchyK1Sidebar').value;
-    const resultsContainer = e.target.closest('.tab-pane').querySelector('.hierarchy-search-results');
 
-    const formData = new FormData();
-    formData.append('query', query);
-    formData.append('k', k);
-    formData.append('k1', k1);
-
-    try {
-      const response = await fetch('/hierarchy_search', {
-        method: 'POST',
-        body: formData
-      });
-      resultsContainer.innerHTML = await response.text();
-    } catch (error) {
-      console.error('Error fetching hierarchy search results:', error);
-      resultsContainer.innerHTML = '<p class="text-danger">Error loading results.</p>';
-    }
-  }
-});
-
-// Initialize with Single Search tab open
-openTab('Single Search');
+// Initialize with InternVideo2 Search tab open
+openTab('InternVideo2 Search');

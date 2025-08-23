@@ -45,6 +45,18 @@ body { background:#f5f6fa; }
 .dropdown-section-title { font-size:.95rem; font-weight:600; color:#888; padding:6px 18px 2px 18px; }
 .dropdown-item-custom { display:flex; align-items:center; gap:10px; padding:6px 18px; font-size:1rem; cursor:pointer; }
 .dropdown-item-custom.active { background:#e9ecef; font-weight:600; }
+/* Highlight dropdown when tab is selected */
+.dropdown-menu-custom.selected-tab {
+  background: #d1e7dd;
+  box-shadow: 0 2px 8px rgba(0,128,64,0.10);
+}
+
+/* Make active item text readable when dropdown is highlighted */
+.dropdown-menu-custom.selected-tab .dropdown-item-custom.active {
+  color: #222 !important;
+  background: #e9ecef;
+  font-weight: 700;
+}
 .dropdown-item-custom:hover { background:#f1f3f5; }
 .dropdown-divider { margin:4px 0; }
 
