@@ -1,2 +1,4 @@
-static/keyframe/
-fdp_index_logitdb.bin
+# Ignore PyTorch / model checkpoint files
+*.bin
+*.pt
+*.pth
