@@ -1,0 +1,21 @@
+underthesea
+pyvi
+translate
+Flask>=2.0.0
+torch>=2.0.0
+faiss-gpu>=1.7.0
+numpy==1.26
+transformers>=4.30.0
+Pillow>=9.0.0
+langdetect>=1.0.9
+googletrans>=3.1.0a0
+accelerate>=0.20.0
+safetensors>=0.3.1
+einops==0.6.1
+av>=9.2.0
+open_clip_torch
+tqdm>=4.65.0
+opencv-python>=4.7.0
+deepspeed>=0.10.0
+flash-attn>=2.0.0
+-e git+https://github.com/XMUDeepLIT/LLaVE.git@main#egg=llava
