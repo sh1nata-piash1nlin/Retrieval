@@ -2,27 +2,27 @@ import random
 import os
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify
+import json
+from utils.faiss import Faiss
+from models.SigLip2 import embed_siglip, processor, model, embed_siglip_text
+from utils.query_processing import Translation
+import numpy as np
+from transformers import AutoProcessor
+import torch
+from langdetect import detect
 
-# ----------------- Config -----------------
 BASE_DIR = Path(__file__).resolve().parent
-# Put your keyframes under static so Flask can serve them
-# e.g. <project>/static/keyFrame/Keyframes_L01/L01_V001/000001.jpg
 KEYFRAME_ROOT = BASE_DIR / 'static' / 'keyFrame'
-
 app = Flask(__name__)
 
-# ----------------- Helpers -----------------
 
-# Dynamically discover all keyframe video folders
 def get_keyframe_video_dirs():
     keyframe_root = os.path.join(app.static_folder, 'keyframe')
     if not os.path.exists(keyframe_root):
         return []
-    # Only include directories that start with 'keyframes_Videos_'
     return [os.path.join(keyframe_root, d) for d in os.listdir(keyframe_root)
             if os.path.isdir(os.path.join(keyframe_root, d)) and d.startswith('keyframes_Videos_')]
 
-# Fixed color palette for borders
 BORDER_COLORS = [
     '#2ecc40', '#0074d9', '#ff4136', '#b10dc9', '#ff851b', '#7fdbff', '#f012be', '#01ff70', '#ffdc00', '#001f3f',
     '#39cccc', '#3d9970', '#85144b', '#aaaaaa', '#111111', '#f1c40f', '#e67e22', '#e74c3c', '#9b59b6', '#34495e'
@@ -62,49 +62,76 @@ def sample_images_from_videos(num_images=30, images_per_video=(3,4)):
     random.shuffle(results) # Shuffle to mix videos
     return results[:num_images]
 
-# ----------------- Routes -----------------
 
 @app.route('/')
 def home():
     return render_template('home.html')
+
+SIGLIP_FAISS_BIN = str(BASE_DIR / 'faiss_siglip_L2.bin')
+SIGLIP_JSON = str(BASE_DIR / 'keyframes_id_search_siglip2.json')
+siglip_index = None
+siglip_id_to_path = None
+# try:
+#     siglip_index = Faiss(SIGLIP_FAISS_BIN)
+#     with open(SIGLIP_JSON, 'r') as f:
+#         siglip_id_to_path = json.load(f)
+#     translation = Translation(from_lang='vi', to_lang='en', mode='googletrans')
+# except Exception as e:
+#     print(f"SigLIP2 index or mapping not loaded: {e}")
+try:
+    siglip_index = Faiss(SIGLIP_FAISS_BIN)
+    with open(SIGLIP_JSON, 'r') as f:
+        siglip_id_to_path = json.load(f)
+    index_count   = siglip_index.index.ntotal   #sanity check
+    mapping_count = len(siglip_id_to_path)
+    if index_count != mapping_count:
+        raise RuntimeError(
+            f"SigLIP index/mapping size mismatch: index={index_count}, paths={mapping_count}. "
+            "Rebuild the FAISS bin and JSON together."
+        )
+    translation = Translation(from_lang='vi', to_lang='en', mode='googletrans')
+
+except Exception as e:
+    print(f"SigLIP2 index or mapping not loaded: {e}")
+    siglip_index = None
+    siglip_id_to_path = None
+
+@app.route('/siglip2_search', methods=['POST'])
+def siglip2_search():
+    query = request.form.get('query')
+    top_k = int(request.form.get('top_k', 30))
+    if not query or not siglip_index or not siglip_id_to_path:
+        return jsonify({'error': 'Missing query or index'}), 400
+    try:
+        lang = Translation().__call__(query) if detect(query) == 'vi' else query
+    except Exception:
+        lang = query
+    inputs = processor(text=lang, return_tensors="pt").to(model.device)
+    with torch.no_grad():
+        query_vec = embed_siglip_text(lang)
+    results = siglip_index.search(query_vecs=query_vec, top_k=top_k)[0]
+    images = []
+    for hit in results:
+        idx = hit['id']
+        score = hit['score']
+        img_path = siglip_id_to_path[idx]
+        parts = img_path.split('/')
+        video_id = parts[-2] if len(parts) >= 2 else ''
+        frame_num = parts[-1].split('.')[0] if len(parts) >= 1 else ''
+        images.append({
+            'image_url': f'/static/keyframe/{img_path}',
+            'score': score,
+            'video_id': video_id,
+            'frame_num': frame_num,
+            'border_color': '#ffa500'
+        })
+    return render_template('_search_results.html', results=images)
 
 @app.route('/search', methods=['POST'])
 def search():
     results = sample_images_from_videos()
     return render_template('_search_results.html', results=results)
 
-@app.route('/hierarchy_search', methods=['POST'])
-def hierarchy_search():
-    try:
-        k = int(request.form.get('k', 30))
-        k1 = int(request.form.get('k1', 5))
-        if k < 1: k = 30
-        if k1 < 1: k1 = 5
-    except Exception:
-        k, k1 = 30, 5
-    num_videos = max(1, k // k1)
-    video_folders = get_video_folders()
-    random.shuffle(video_folders)
-    selected_videos = video_folders[:num_videos]
-    results = []
-    color_idx = 0
-    for vid, path, base_name in selected_videos:
-        images = [f for f in os.listdir(path) if f.lower().endswith('.jpg')]
-        if not images:
-            continue
-        chosen = random.sample(images, min(k1, len(images)))
-        color = BORDER_COLORS[color_idx % len(BORDER_COLORS)]
-        color_idx += 1
-        for img in chosen:
-            results.append({
-                'video_id': vid,
-                'frame_num': os.path.splitext(img)[0],
-                'image_url': f'/static/keyframe/{base_name}/{vid}/{img}',
-                'border_color': color
-            })
-    results = results[:k]
-    results.sort(key=lambda x: x['video_id'])
-    return render_template('_search_results.html', results=results)
 
 
 if __name__ == '__main__':
