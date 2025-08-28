@@ -18,4 +18,8 @@ tqdm>=4.65.0
 opencv-python>=4.7.0
 deepspeed>=0.10.0
 flash-attn>=2.0.0
+<<<<<<< HEAD
 -e git+https://github.com/XMUDeepLIT/LLaVE.git@main#egg=llava
+=======
+-e git+https://github.com/XMUDeepLIT/LLaVE.git@main#egg=llava
+>>>>>>> f33aa8bd9d90cd5e17e59db00c45f998ee196685
