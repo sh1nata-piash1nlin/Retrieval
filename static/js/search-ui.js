@@ -2,8 +2,10 @@
 const ICONS = {
   "InternVideo2 Search": "fa-solid fa-video",
   "blip2 Search": "fa-solid fa-robot",
+  "SigLIP2 Search": "fa-solid fa-image",
   "bge-m3 Search": "fa-solid fa-brain",
   "FDP Search": "fa-solid fa-database",
+  "PE Search": "fa-solid fa-microchip",
   "Fusion Search": "fa-regular fa-circle",
   "Local Search": "fa-regular fa-gem",
   "Group Search": "fa-solid fa-users",
@@ -41,6 +43,19 @@ const TEMPLATES = {
       <!-- Search results will be loaded here -->
     </div>
   `,
+  "SigLIP2 Search": () => `
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div></div>
+      <div class="search-bar w-75 d-flex align-items-center gap-2">
+        <input type="text" class="form-control" placeholder="Nhập mô tả tìm kiếm SigLIP2..." />
+        <button class="btn btn-warning" id="siglip2-search-btn">Search</button>
+      </div>
+      <div></div>
+    </div>
+    <div class="search-results">
+      <!-- SigLIP2 search results will be loaded here -->
+    </div>
+  `,
   "bge-m3 Search": () => `
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div></div>
@@ -52,6 +67,19 @@ const TEMPLATES = {
     </div>
     <div class="search-results">
       <!-- Search results will be loaded here -->
+    </div>
+  `,
+  "PE Search": () => `
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div></div>
+      <div class="search-bar w-75 d-flex align-items-center gap-2">
+        <input type="text" class="form-control" placeholder="Nhập mô tả tìm kiếm PE..." />
+        <button class="btn btn-warning" id="pe-search-btn">Search</button>
+      </div>
+      <div></div>
+    </div>
+    <div class="search-results">
+      <!-- PE search results will be loaded here -->
     </div>
   `,
   "FDP Search": () => `
@@ -219,6 +247,40 @@ tabBar.addEventListener('click', (e) => {
 // ...existing code...
 
 // You can add event listeners for new search buttons here if needed
+
+// SigLIP2 Search event handler
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.id === 'siglip2-search-btn') {
+    const tabPane = e.target.closest('.tab-pane');
+    const input = tabPane.querySelector('input[type="text"]');
+    const query = input.value.trim();
+    const kValueInput = document.getElementById('kValue');
+    let top_k = 30;
+    if (kValueInput && kValueInput.value) {
+      top_k = parseInt(kValueInput.value) || 30;
+    }
+    if (!query) return;
+    e.target.disabled = true;
+    e.target.textContent = 'Searching...';
+    fetch('/siglip2_search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `query=${encodeURIComponent(query)}&top_k=${top_k}`
+    })
+    .then(res => res.text())
+    .then(html => {
+      const resultsDiv = tabPane.querySelector('.search-results');
+      resultsDiv.innerHTML = html;
+    })
+    .catch(() => {
+      tabPane.querySelector('.search-results').innerHTML = '<div class="text-danger">Error searching.</div>';
+    })
+    .finally(() => {
+      e.target.disabled = false;
+      e.target.textContent = 'Search';
+    });
+  }
+});
 
 
 // Initialize with InternVideo2 Search tab open
