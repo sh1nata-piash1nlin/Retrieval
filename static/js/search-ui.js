@@ -22,7 +22,8 @@ const TEMPLATES = {
       <div></div>
       <div class="search-bar w-75 d-flex align-items-center gap-2">
         <input type="text" class="form-control" placeholder="Nhập mô tả tìm kiếm..." />
-        <button class="btn btn-success" id="internvideo2-search-btn">Search</button>
+          <button class="btn btn-success" id="internvideo2-search-btn">Search</button>
+    <button class="btn btn-danger" id="internvideo2-submit-btn">Submit</button>
       </div>
       <div></div>
     </div>
@@ -35,7 +36,8 @@ const TEMPLATES = {
       <div></div>
       <div class="search-bar w-75 d-flex align-items-center gap-2">
         <input type="text" class="form-control" placeholder="Nhập mô tả tìm kiếm..." />
-        <button class="btn btn-primary" id="blip2-search-btn">Search</button>
+          <button class="btn btn-primary" id="blip2-search-btn">Search</button>
+    <button class="btn btn-danger" id="blip2-submit-btn">Submit</button>
       </div>
       <div></div>
     </div>
@@ -48,7 +50,8 @@ const TEMPLATES = {
       <div></div>
       <div class="search-bar w-75 d-flex align-items-center gap-2">
         <input type="text" class="form-control" placeholder="Nhập mô tả tìm kiếm SigLIP2..." />
-        <button class="btn btn-warning" id="siglip2-search-btn">Search</button>
+          <button class="btn btn-warning" id="siglip2-search-btn">Search</button>
+    <button class="btn btn-danger" id="siglip2-submit-btn">Submit</button>
       </div>
       <div></div>
     </div>
@@ -61,7 +64,8 @@ const TEMPLATES = {
       <div></div>
       <div class="search-bar w-75 d-flex align-items-center gap-2">
         <input type="text" class="form-control" placeholder="Nhập mô tả tìm kiếm..." />
-        <button class="btn btn-primary" id="bge-m3-search-btn">Search</button>
+          <button class="btn btn-primary" id="bge-m3-search-btn">Search</button>
+    <button class="btn btn-danger" id="bge-m3-submit-btn">Submit</button>
       </div>
       <div></div>
     </div>
@@ -74,7 +78,8 @@ const TEMPLATES = {
       <div></div>
       <div class="search-bar w-75 d-flex align-items-center gap-2">
         <input type="text" class="form-control" placeholder="Nhập mô tả tìm kiếm PE..." />
-        <button class="btn btn-warning" id="pe-search-btn">Search</button>
+          <button class="btn btn-warning" id="pe-search-btn">Search</button>
+    <button class="btn btn-danger" id="pe-submit-btn">Submit</button>
       </div>
       <div></div>
     </div>
@@ -87,7 +92,8 @@ const TEMPLATES = {
       <div></div>
       <div class="search-bar w-75 d-flex align-items-center gap-2">
         <input type="text" class="form-control" placeholder="Nhập mô tả tìm kiếm FDP..." />
-        <button class="btn btn-info" id="fdp-search-btn">Search</button>
+          <button class="btn btn-info" id="fdp-search-btn">Search</button>
+    <button class="btn btn-danger" id="fdp-submit-btn">Submit</button>
       </div>
       <div></div>
     </div>
@@ -98,18 +104,21 @@ const TEMPLATES = {
   "OCR Match": () => `
     <div class="mb-3 d-flex gap-2">
       <input type="text" class="form-control" placeholder="Nhập nội dung OCR cần tìm…" />
-      <button class="btn btn-primary">Search OCR</button>
+        <button class="btn btn-primary">Search OCR</button>
+    <button class="btn btn-danger" id="ocr-submit-btn">Submit</button>
     </div>
   `,
   "Subtitle Match": () => `
     <div class="mb-3 d-flex gap-2">
       <input type="text" class="form-control" placeholder="Nhập câu phụ đề cần tìm…" />
-      <button class="btn btn-primary">Search Subtitle</button>
+        <button class="btn btn-primary">Search Subtitle</button>
+    <button class="btn btn-danger" id="subtitle-submit-btn">Submit</button>
     </div>
   `,
   "Similar Image Search": () => `
     <input type="file" class="form-control mb-3" accept="image/*" />
-    <button class="btn btn-primary">Find Similar Images</button>
+      <button class="btn btn-primary">Find Similar Images</button>
+    <button class="btn btn-danger" id="similar-image-submit-btn">Submit</button>
   `
 };
 
