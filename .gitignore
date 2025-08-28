@@ -1,4 +1,8 @@
+/static/keyframe/
+faiss_siglip_L2.bin
+keyframes_id_search_siglip2.json
 # Ignore PyTorch / model checkpoint files
 *.bin
 *.pt
 *.pth
+
