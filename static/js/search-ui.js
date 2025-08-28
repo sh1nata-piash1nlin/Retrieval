@@ -291,6 +291,18 @@ document.addEventListener('click', function(e) {
   }
 });
 
+// Toggle selection by clicking the whole card (leave the Q icon alone)
+document.addEventListener('click', (e) => {
+  const card = e.target.closest('.img-card.clickable');
+  if (!card) return;
+  card.classList.toggle('is-selected');  // Multi-select
+
+  // If you prefer single-select, use:
+  // document.querySelectorAll('.img-card.is-selected').forEach(c => c.classList.remove('is-selected'));
+  // card.classList.add('is-selected');
+});
+
+
 
 // Initialize with InternVideo2 Search tab open
 openTab('InternVideo2 Search');

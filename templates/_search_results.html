@@ -2,13 +2,16 @@
   <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3">
     {% for result in results %}
     <div class="col">
-      <div class="img-card" style="--card-border-color: {{ result.border_color }};">
+      <div
+        class="img-card clickable"
+        data-img-id="{{ result.video_id }}_{{ result.frame_num }}"
+        style="--card-border-color: {{ result.border_color }};"
+      >
         <div class="img-wrapper">
-          <img src="{{ result.image_url }}" alt="Frame" />
-          <!-- Q icon overlay -->
-          <span class="img-q-icon">
-            <i class="fa-solid fa-magnifying-glass"></i>
-          </span>
+          <div class="img-select-wrapper" style="position: relative;">
+            <img src="{{ result.image_url }}" alt="Frame" />
+            <span class="img-q-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+          </div>
         </div>
         <div class="img-info-row">
           <span class="img-label" style="--img-label-color: {{ result.border_color }};">{{ result.video_id }}</span>
@@ -18,8 +21,4 @@
     </div>
     {% endfor %}
   </div>
-<<<<<<< HEAD
 </div>
-=======
-</div>
->>>>>>> f33aa8bd9d90cd5e17e59db00c45f998ee196685

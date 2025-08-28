@@ -38,12 +38,8 @@ def embed_siglip(image):
         feats = model.get_image_features(**inputs)  # (1, D)
         feats = feats / feats.norm(p=2, dim=-1, keepdim=True)  # normalize L2
         return feats.cpu().numpy().astype(np.float32)
-<<<<<<< HEAD
 
 
-=======
-#sh1nata add this =))))))))) 
->>>>>>> f33aa8bd9d90cd5e17e59db00c45f998ee196685
 def embed_siglip_text(text: str):
     """Unit-normalize TEXT embedding (for queries)."""
     inputs = processor(text=text, return_tensors="pt").to(model.device)
@@ -52,10 +48,6 @@ def embed_siglip_text(text: str):
         feats = feats / feats.norm(p=2, dim=-1, keepdim=True)
     return feats.cpu().numpy().astype(np.float32)
 
-<<<<<<< HEAD
-=======
-
->>>>>>> f33aa8bd9d90cd5e17e59db00c45f998ee196685
 def add_vector(embedding, index):
     index.add(embedding)
 
@@ -200,8 +192,4 @@ def main():
 # Run
 # -------------------------
 if __name__ == "__main__":
-<<<<<<< HEAD
     main()
-=======
-    main()
->>>>>>> f33aa8bd9d90cd5e17e59db00c45f998ee196685

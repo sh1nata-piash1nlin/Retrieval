@@ -16,18 +16,28 @@ body { background:#f5f6fa; }
   position:relative;
 }
 
-.img-q-icon {
-  position:absolute;
-  bottom:8px;
-  right:8px;
-  background:rgba(255,255,255,0.85);
-  border-radius:50%;
-  padding:2px 6px;
-  font-size:1.1rem;
-  color:#555;
-  box-shadow:0 1px 4px rgba(0,0,0,.12);
-  z-index:2;
+/* Q icon badge: fixed-size perfect circle */
+.img-q-icon{
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  display: inline-flex;           /* keep shape */
+  width: 28px;
+  height: 28px;
+  padding: 0;                     /* no variable padding */
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.85);
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  z-index: 2;
 }
+
+.img-q-icon i{
+  font-size: 14px;                /* stable glyph size */
+  line-height: 1;
+}
+
 
 /* Add a white inner border for contrast */
 .img-card img {
@@ -86,25 +96,8 @@ body { background:#f5f6fa; }
 /* Optional small helper */
 .toggle-switch { display:flex; align-items:center; gap:6px; }
 
-/* Make the image area a positioning container */
-.img-wrapper{
-  position: relative;
-}
 
-/* Put the Q icon exactly at the image’s bottom-right */
-.img-wrapper .img-q-icon{
-  bottom: 6px;   /* move it up into the image */
-  right: 6px;
-}
 
-/* One-line info row: label left, frame number right */
-.img-info-row{
-  display: flex;
-  align-items: center;
-  justify-content: space-between; /* pushes number to the far right */
-  gap: 8px;
-  padding: 6px 10px 10px;
-}
 
 .img-label{
   margin: 0; /* keep it tight so both fit one line */
@@ -116,8 +109,51 @@ body { background:#f5f6fa; }
   font-size: .8rem;
   color: #999;
   text-align: right;
-<<<<<<< HEAD
 }
-=======
+
+/* Cards */
+.img-card{
+  border-radius:10px;
+  overflow:hidden;
+  box-shadow:0 4px 16px rgba(0,0,0,.10);
+  background:#fff;
+  margin-bottom:20px;
+  border-width:5px !important;
+  border-style:solid !important;
+  border-color: var(--card-border-color, #aaa) !important; /* <- use var */
+  box-sizing:border-box;
+  position:relative;
+  transition: border-color .15s ease, box-shadow .15s ease;
 }
->>>>>>> f33aa8bd9d90cd5e17e59db00c45f998ee196685
+
+/* Selected state = green border + soft glow */
+.img-card.is-selected{
+  border-color:#28a745 !important;
+  box-shadow:0 0 0 3px rgba(40,167,69,.15), 0 4px 16px rgba(0,0,0,.10);
+}
+
+/* Make the row simple 2-column again */
+.img-info-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:6px 10px 10px;
+}
+
+/* Clickable cursor for the card */
+.img-card.clickable{ cursor:pointer; }
+
+
+.img-label{ margin: 0; justify-self: start; }  /* left */
+.img-number{
+  justify-self: end;                           /* right */
+  margin-left: 0;
+  padding: 0;
+  font-size: .8rem;
+  color: #999;
+  text-align: right;
+}
+
+.img-tick-btn{ cursor: pointer; transition: box-shadow .15s ease, background-color .15s ease, border-color .15s ease; }
+.img-tick-btn:hover{ box-shadow: 0 2px 6px rgba(0,0,0,.18); }
