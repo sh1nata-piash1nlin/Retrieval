@@ -116,21 +116,23 @@ body { background:#f5f6fa; }
   border-radius:10px;
   overflow:hidden;
   box-shadow:0 4px 16px rgba(0,0,0,.10);
-  background:#fff;
+  background:#fff; /* default white */
   margin-bottom:20px;
   border-width:5px !important;
   border-style:solid !important;
-  border-color: var(--card-border-color, #aaa) !important; /* <- use var */
+  border-color: var(--card-border-color, #aaa) !important;
   box-sizing:border-box;
   position:relative;
-  transition: border-color .15s ease, box-shadow .15s ease;
+  transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease; /* + background */
 }
 
-/* Selected state = green border + soft glow */
+/* Selected state = green border + soft green background */
 .img-card.is-selected{
   border-color:#28a745 !important;
+  background-color:#eaf7ef; /* light green background on select */
   box-shadow:0 0 0 3px rgba(40,167,69,.15), 0 4px 16px rgba(0,0,0,.10);
 }
+
 
 /* Make the row simple 2-column again */
 .img-info-row{
