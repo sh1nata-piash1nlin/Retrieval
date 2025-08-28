@@ -38,6 +38,15 @@ def embed_siglip(image):
         feats = model.get_image_features(**inputs)  # (1, D)
         feats = feats / feats.norm(p=2, dim=-1, keepdim=True)  # normalize L2
         return feats.cpu().numpy().astype(np.float32)
+#sh1nata add this =))))))))) 
+def embed_siglip_text(text: str):
+    """Unit-normalize TEXT embedding (for queries)."""
+    inputs = processor(text=text, return_tensors="pt").to(model.device)
+    with torch.no_grad():
+        feats = model.get_text_features(**inputs)
+        feats = feats / feats.norm(p=2, dim=-1, keepdim=True)
+    return feats.cpu().numpy().astype(np.float32)
+
 
 def add_vector(embedding, index):
     index.add(embedding)
