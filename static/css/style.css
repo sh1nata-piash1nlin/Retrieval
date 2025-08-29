@@ -3,18 +3,6 @@ body { background:#f5f6fa; }
 .sidebar { width:250px; background:#f8f9fa; height:100vh; position:fixed; left:0; top:0; border-right:1px solid #dee2e6; padding:20px 10px; overflow-y:auto; }
 .main-content { margin-left:260px; padding:30px 40px; }
 
-/* Cards */
-.img-card {
-  border-radius:10px;
-  overflow:hidden;
-  box-shadow:0 4px 16px rgba(0,0,0,.10);
-  background:#fff;
-  margin-bottom:20px;
-  border-width:5px !important;
-  border-style:solid !important;
-  box-sizing:border-box;
-  position:relative;
-}
 
 /* Q icon badge: fixed-size perfect circle */
 .img-q-icon{
@@ -159,3 +147,93 @@ body { background:#f5f6fa; }
 
 .img-tick-btn{ cursor: pointer; transition: box-shadow .15s ease, background-color .15s ease, border-color .15s ease; }
 .img-tick-btn:hover{ box-shadow: 0 2px 6px rgba(0,0,0,.18); }
+
+
+/* Thumbnails in modal */
+.frame-thumb{
+  border-radius:6px;
+  border:2px solid #ddd;
+  transition: transform .1s ease, border-color .15s ease;
+  cursor:pointer;
+}
+.frame-thumb:hover{ transform:scale(1.03); }
+.frame-thumb.active{ border-color:#28a745; }
+
+/* Make the Q icon ignore pointer events so dblclick works even on the badge */
+.img-q-icon, .img-q-icon i{ pointer-events: none; }
+
+/* Modal main viewer highlight */
+#frameModal .viewer-box{
+  position: relative;
+  border: 3px solid transparent;
+  border-radius: 10px;
+  padding: 6px;                         /* subtle inset */
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+#frameModal .viewer-box.is-current{
+  border-color: #28a745;
+  background: #f3fbf6;                  /* soft green wash */
+  box-shadow: 0 0 0 3px rgba(40,167,69,.15), 0 2px 8px rgba(0,0,0,.06);
+}
+
+#frameModal .viewer-badge{
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #28a745;
+  color: #fff;
+  font-weight: 600;
+  font-size: .9rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  pointer-events: none;
+}
+
+/* Main viewer states */
+#frameModal .viewer-box{
+  position: relative;
+  border: 3px solid transparent;
+  border-radius: 10px;
+  padding: 6px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+#frameModal .viewer-box.is-origin{
+  border-color: #FF9800;                 /* orange */
+  background: #FFF4E0;                   /* soft orange wash */
+  box-shadow: 0 0 0 3px rgba(255,152,0,.18), 0 2px 8px rgba(0,0,0,.06);
+}
+#frameModal .viewer-box.is-selected{
+  border-color: #28a745;                 /* green */
+  background: #EAF7EF;                   /* soft green wash */
+  box-shadow: 0 0 0 3px rgba(40,167,69,.15), 0 2px 8px rgba(0,0,0,.06);
+}
+
+#frameModal .viewer-badge{
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,.65);
+  color: #fff;
+  font-weight: 600;
+  font-size: .9rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  pointer-events: none;
+}
+
+/* Thumbnails */
+.frame-thumb{
+  border-radius:6px;
+  border:2px solid #ddd;
+  transition: transform .1s ease, border-color .15s ease, box-shadow .15s ease;
+  cursor:pointer;
+}
+.frame-thumb:hover{ transform:scale(1.03); }
+.frame-thumb.active{ border-color:#28a745; box-shadow: 0 0 0 2px rgba(40,167,69,.15); }
+.frame-thumb.thumb-origin{ border-color:#FF9800; box-shadow: 0 0 0 2px rgba(255,152,0,.18); }

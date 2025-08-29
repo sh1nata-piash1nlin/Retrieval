@@ -1,0 +1,35 @@
+<div class="modal-header">
+  <h5 class="modal-title">
+    Video {{ video_id }} · Current Frame <span id="currentFrameNumber">{{ current_frame }}</span>
+  </h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body">
+  {% set current = (frames | selectattr('is_current') | list)[0] %}
+  <!-- Main viewer: start as ORIGIN (orange) -->
+  <div class="viewer-box is-origin mb-3" id="viewerBox">
+    <img id="frame-viewer-img"
+         src="{{ current.image_url }}"
+         alt="Frame {{ current_frame }}"
+         class="img-fluid rounded">
+    <div class="viewer-badge" id="viewerBadge">Frame {{ current_frame }}</div>
+  </div>
+
+  <!-- Thumbnails strip -->
+  <div class="thumb-strip d-flex gap-2 overflow-auto pb-2">
+    {% for fr in frames %}
+      <img
+        class="frame-thumb {{ 'thumb-origin active' if fr.is_current else '' }}"
+        src="{{ fr.image_url }}"
+        alt="{{ fr.frame_num }}"
+        data-frame="{{ fr.frame_num }}"
+        {% if fr.is_current %}data-origin="true"{% endif %}
+        style="height:80px">
+    {% endfor %}
+  </div>
+</div>
+
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+</div>

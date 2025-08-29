@@ -4,7 +4,7 @@ import random
 import zlib
 from pathlib import Path
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, url_for
 from langdetect import detect
 import numpy as np
 import torch
@@ -94,6 +94,20 @@ def sample_images_from_videos(num_images=30, images_per_video=(3, 4)):
     random.shuffle(results)  # mix videos
     return results[:num_images]
 
+def find_video_dir(video_id: str):
+    for base_dir in get_keyframe_video_dirs():
+        direct = os.path.join(base_dir, video_id)
+        nested = os.path.join(base_dir, "keyframes", video_id)
+
+        if os.path.isdir(direct):
+            return direct, os.path.relpath(direct, app.static_folder)
+
+        if os.path.isdir(nested):
+            return nested, os.path.relpath(nested, app.static_folder)
+
+    return None, None
+
+
 @app.route("/")
 def home():
     return render_template("home.html")
@@ -166,6 +180,51 @@ def siglip2_search():
         )
 
     return render_template("_search_results.html", results=images)
+
+
+@app.route('/frame_window')
+def frame_window():
+    video_id = request.args.get("video_id")
+    frame_str = request.args.get("frame")
+    window = int(request.args.get("w", 50))
+    if not video_id or not frame_str:
+        return "Missing params", 400
+
+    abs_dir, rel_dir = find_video_dir(video_id)   # rel_dir is path *from* app.static_folder
+    if not abs_dir:
+        return f"Video {video_id} not found", 404
+
+    files = [f for f in os.listdir(abs_dir) if f.lower().endswith(".jpg")]
+    if not files:
+        return "No frames found", 404
+
+    files.sort(key=lambda x: int(os.path.splitext(x)[0]))  # numeric sort
+
+    target_name = f"{frame_str}.jpg"
+    try:
+        idx = files.index(target_name)
+    except ValueError:
+        target_num = int(frame_str)
+        idx = min(range(len(files)), key=lambda i: abs(int(os.path.splitext(files[i])[0]) - target_num))
+
+    start = max(0, idx - window)
+    end = min(len(files), idx + window + 1)
+    subset = files[start:end]
+
+    # IMPORTANT: convert rel_dir to web/posix path OR just use url_for
+    web_rel = rel_dir.replace(os.path.sep, "/")  # safe even on Linux/Mac
+
+    frames = []
+    for fn in subset:
+        num = os.path.splitext(fn)[0]
+        # Prefer url_for so Flask handles STATIC_URL_PATH etc.
+        url = url_for("static", filename=f"{web_rel}/{fn}")
+        frames.append({"image_url": url, "frame_num": num, "is_current": (fn == target_name)})
+
+    return render_template("_frame_window.html",
+                           video_id=video_id,
+                           current_frame=frame_str,
+                           frames=frames)
 
 @app.route("/search", methods=["POST"])
 def search():

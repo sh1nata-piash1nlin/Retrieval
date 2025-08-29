@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 
 </head>
+
 <body>
   <!-- SIDEBAR -->
   <aside class="sidebar">
@@ -65,8 +66,16 @@
     </div>
   </main>
 
+  <div class="modal fade" id="frameModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content" id="frameModalContent">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+  </div>
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{{ url_for('static', filename='js/search-ui.js') }}"></script>
+  <!-- Frame Viewer Modal -->
 </body>
 </html>
