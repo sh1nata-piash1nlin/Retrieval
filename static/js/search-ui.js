@@ -259,6 +259,10 @@ document.addEventListener('click', (e) => {
 // Open the frame window on double-click
 document.addEventListener('dblclick', (e) => {
   const imgArea = e.target.closest('.img-card.clickable .img-wrapper, .img-card.clickable img');
+  
+  if (e.target.closest('.img-q-icon')) return;
+
+  
   if (!imgArea) return;                         // dblclick must be on the image
   const card = imgArea.closest('.img-card.clickable');
   if (!card) return;
