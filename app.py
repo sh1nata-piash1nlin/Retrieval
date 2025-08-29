@@ -17,31 +17,6 @@ BASE_DIR = Path(__file__).resolve().parent
 KEYFRAME_ROOT = BASE_DIR / "static" / "keyframe"  
 app = Flask(__name__)
 
-PALETTE = [
-    "#0D47A1",  # deep blue
-    "#1A237E",  # indigo 900
-    "#283593",  # indigo 800
-    "#3F51B5",  # indigo 500
-    "#4527A0",  # deep purple
-    "#4A148C",  # purple 900
-    "#6A1B9A",  # purple 800
-    "#7B1FA2",  # purple 700
-    "#880E4F",  # dark magenta
-    "#AD1457",  # crimson/magenta
-    "#B71C1C",  # dark red
-    "#BF360C",  # burnt orange
-    "#E65100",  # dark orange
-    "#5D4037",  # brown
-    "#3E2723",  # very dark brown
-    "#263238",  # charcoal blue-grey
-]
-
-def color_for_video(video_id: str) -> str:
-    """Deterministically pick a color from PALETTE for a given video_id."""
-    if not video_id:
-        return "#DDDDDD"
-    idx = zlib.crc32(video_id.encode("utf-8")) % len(PALETTE)
-    return PALETTE[idx]
 
 def get_keyframe_video_dirs():
     keyframe_root = os.path.join(app.static_folder, "keyframe")
@@ -107,6 +82,47 @@ def find_video_dir(video_id: str):
 
     return None, None
 
+def _hsl_to_hex(h: int, s: int, l: int) -> str:
+    """Convert HSL (0–360, 0–100, 0–100) to #RRGGBB."""
+    s /= 100.0
+    l /= 100.0
+    c = (1 - abs(2*l - 1)) * s
+    x = c * (1 - abs((h / 60.0) % 2 - 1))
+    m = l - c / 2.0
+
+    if   0 <= h < 60:   r, g, b = c, x, 0
+    elif 60 <= h < 120: r, g, b = x, c, 0
+    elif 120 <= h < 180:r, g, b = 0, c, x
+    elif 180 <= h < 240:r, g, b = 0, x, c
+    elif 240 <= h < 300:r, g, b = x, 0, c
+    else:               r, g, b = c, 0, x
+
+    r = int(round((r + m) * 255))
+    g = int(round((g + m) * 255))
+    b = int(round((b + m) * 255))
+    return f"#{r:02X}{g:02X}{b:02X}"
+
+def color_for_video(video_id: str) -> str:
+    """
+    Deterministic vivid color for each video_id.
+    - Avoids the green hue band (used by selection UI).
+    - Adds slight lightness variation to reduce collisions further.
+    """
+    if not video_id:
+        return "#888888"
+
+    crc = zlib.crc32(video_id.encode("utf-8"))
+    h = crc % 360
+
+    # Avoid selection-green band (~120°). Shift it away.
+    if 100 <= h <= 150:
+        h = (h + 60) % 360
+
+    # Vibrant but still readable on white; slight variation per ID
+    s = 72                              # saturation
+    l = 42 + ((crc >> 12) % 10)         # 42..51 (darker/lighter steps)
+
+    return _hsl_to_hex(h, s, l)
 
 @app.route("/")
 def home():
