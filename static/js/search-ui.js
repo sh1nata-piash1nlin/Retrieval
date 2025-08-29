@@ -247,15 +247,20 @@ document.addEventListener('click', function(e) {
 
 // Toggle selection by clicking the whole card (ignore double-clicks)
 document.addEventListener('click', (e) => {
-  if (e.detail > 1) return; // prevent dblclick from toggling twice
   const card = e.target.closest('.img-card.clickable');
   if (!card) return;
-  card.classList.toggle('is-selected');  // multi-select
+
+  // Ignore clicks on the Q icon
+  if (e.target.closest('.img-q-icon')) return;
+
+  card.classList.toggle('is-selected');
 });
 
 // Open the frame window on double-click
 document.addEventListener('dblclick', (e) => {
-  const card = e.target.closest('.img-card.clickable');
+  const imgArea = e.target.closest('.img-card.clickable .img-wrapper, .img-card.clickable img');
+  if (!imgArea) return;                         // dblclick must be on the image
+  const card = imgArea.closest('.img-card.clickable');
   if (!card) return;
 
   const videoId = card.getAttribute('data-video-id');
