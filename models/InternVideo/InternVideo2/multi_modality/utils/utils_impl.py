@@ -17,8 +17,8 @@ from multi_modality.models.backbones.internvideo2 import pretrain_internvideo2_1
 from multi_modality.models.backbones.bert.builder import build_bert
 from multi_modality.models.criterions import get_sim
 from multi_modality.models.backbones.internvideo2.pos_embed import interpolate_pos_embed_internvideo2_new
-from multi_modality.models.backbones.bert.tokenization_bert import BertTokenizer
-
+# from multi_modality.models.backbones.bert.tokenization_bert import BertTokenizer
+from transformers import BertTokenizer
 
 def _frame_from_video(video):
     while video.isOpened():
@@ -137,7 +137,11 @@ class InternVideo2_Stage2(nn.Module):
         super(InternVideo2_Stage2, self).__init__()
 
         self.config = config
+        if not callable(tokenizer):
+            print(f"Tokenizer is not callable: type={type(tokenizer)}, value={tokenizer}")
+            raise ValueError("Tokenizer must be a callable object (e.g., PreTrainedTokenizer)")
         self.tokenizer = tokenizer
+        # self.tokenizer = tokenizer
 
         self.is_pretrain = is_pretrain
         self.vision_width = config.model.vision_encoder.clip_embed_dim

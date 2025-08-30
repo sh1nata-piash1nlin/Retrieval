@@ -16,6 +16,29 @@ body { background:#f5f6fa; }
   position:relative;
 }
 
+/* Q icon badge: fixed-size perfect circle */
+.img-q-icon{
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  display: inline-flex;           /* keep shape */
+  width: 28px;
+  height: 28px;
+  padding: 0;                     /* no variable padding */
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.85);
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  z-index: 2;
+}
+
+.img-q-icon i{
+  font-size: 14px;                /* stable glyph size */
+  line-height: 1;
+}
+
+
 /* Add a white inner border for contrast */
 .img-card img {
   border:2px solid #fff;
@@ -72,3 +95,67 @@ body { background:#f5f6fa; }
 
 /* Optional small helper */
 .toggle-switch { display:flex; align-items:center; gap:6px; }
+
+
+
+
+.img-label{
+  margin: 0; /* keep it tight so both fit one line */
+}
+
+.img-number{
+  margin-left: auto;  /* ensures it hugs the right edge */
+  padding: 0;         /* override old padding */
+  font-size: .8rem;
+  color: #999;
+  text-align: right;
+}
+
+/* Cards */
+.img-card{
+  border-radius:10px;
+  overflow:hidden;
+  box-shadow:0 4px 16px rgba(0,0,0,.10);
+  background:#fff; /* default white */
+  margin-bottom:20px;
+  border-width:5px !important;
+  border-style:solid !important;
+  border-color: var(--card-border-color, #aaa) !important;
+  box-sizing:border-box;
+  position:relative;
+  transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease; /* + background */
+}
+
+/* Selected state = green border + soft green background */
+.img-card.is-selected{
+  border-color:#28a745 !important;
+  background-color:#eaf7ef; /* light green background on select */
+  box-shadow:0 0 0 3px rgba(40,167,69,.15), 0 4px 16px rgba(0,0,0,.10);
+}
+
+
+/* Make the row simple 2-column again */
+.img-info-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:6px 10px 10px;
+}
+
+/* Clickable cursor for the card */
+.img-card.clickable{ cursor:pointer; }
+
+
+.img-label{ margin: 0; justify-self: start; }  /* left */
+.img-number{
+  justify-self: end;                           /* right */
+  margin-left: 0;
+  padding: 0;
+  font-size: .8rem;
+  color: #999;
+  text-align: right;
+}
+
+.img-tick-btn{ cursor: pointer; transition: box-shadow .15s ease, background-color .15s ease, border-color .15s ease; }
+.img-tick-btn:hover{ box-shadow: 0 2px 6px rgba(0,0,0,.18); }
