@@ -56,7 +56,7 @@ def create_npy(input_data_path: str):
     root_path = Path(input_data_path)
     video_folders = []
     for subdir in sorted(os.listdir(root_path)):
-        if "keyframes_Videos_K" not in subdir:
+        if "keyframes_Videos_L" not in subdir:
             continue
         keyframes_path = os.path.join(root_path, subdir, "keyframes")
         if not os.path.isdir(keyframes_path):
@@ -132,8 +132,8 @@ def create_bin(input_npy_path: str, output_bin_path: str, method="L2", feature_s
     for npy_file in tqdm(npy_files, desc="Building FAISS index"):
         # Load embeddings
         feats = np.load(npy_file).astype(np.float32)
-        if method == "cosine":
-            faiss.normalize_L2(feats)
+        # if method == "cosine":
+        #     faiss.normalize_L2(feats)
 
         # Add to FAISS index
         index.add(feats)

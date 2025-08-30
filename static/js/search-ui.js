@@ -114,7 +114,7 @@ function fetchNeighboringFrames(videoId, frameNum, modelType) {
   formData.append('frame_num', frameNum);
   formData.append('model_type', modelType);
 
-  return fetch('http://172.17.0.3:2714/neighboring_frames', {
+  return fetch('/neighboring_frames', {
     method: 'POST',
     body: formData
   })
@@ -287,7 +287,7 @@ function handleTextSearch(query, modelType, topK, resultsContainer) {
   formData.append('top_k', topK);
   formData.append('model_type', modelType);
 
-  fetch('http://172.17.0.3:2714/text_search', {
+  fetch('/text_search', {
     method: 'POST',
     body: formData
   })
@@ -312,7 +312,7 @@ function handleImageSearch(file, modelType, topK, resultsContainer) {
   formData.append('top_k', topK);
   formData.append('model_type', modelType);
 
-  fetch('http://172.17.0.3:2714/image_search', {
+  fetch('/image_search', {
     method: 'POST',
     body: formData
   })
@@ -332,7 +332,7 @@ function handleImageSearch(file, modelType, topK, resultsContainer) {
 
 // Function to load initial random results
 function loadInitialResults(resultsContainer) {
-  fetch('http://172.17.0.3:2714/search')
+  fetch('/search')
     .then(response => response.json())
     .then(data => {
       if (data.error) {

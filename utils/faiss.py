@@ -13,7 +13,7 @@ from transformers.image_utils import load_image
 from utils.query_processing import Translation
 import json
 import clip
-from models.blip2 import BLIP2Model
+from models.blip2.blip2 import BLIP2Model
 
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 try:
@@ -100,7 +100,7 @@ class Faiss:
     def embed_text(self, text: str, model_type: str = "internvideo2") -> np.ndarray:
         """Generate embedding for a single text query using specified model."""
         if model_type == "siglip2":
-            inputs = self.siglip_processor(text=text, padding="max_length",return_tensors="pt").to(self.device)
+            inputs = self.siglip_processor(text=text, padding="max_length", max_length=64,return_tensors="pt").to(self.device)
             with torch.no_grad():
                 feats = self.siglip_model.get_text_features(**inputs)
                 feats = feats / feats.norm(p=2, dim=-1, keepdim=True)  # Normalize L2

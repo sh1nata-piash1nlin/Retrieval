@@ -14,6 +14,8 @@ BASE_DIR = Path(__file__).resolve().parent
 WORKSPACE_DIR = BASE_DIR.parent
 DATA_DIR = WORKSPACE_DIR / 'data_aichallenge2025'
 KEYFRAME_ROOT = DATA_DIR
+MEDIA_INFO_DIR = DATA_DIR / 'media-info-aic25-b1' / 'media-info'
+
 app = Flask(__name__)
 app.config['DATA_AICHALLENGE2025'] = str(DATA_DIR)
 
@@ -25,7 +27,7 @@ PALETTE = [
 # Initialize Faiss with all models
 device = "cuda:1" if torch.cuda.is_available() else "cpu"
 # SIGLIP_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_siglip_L2.bin")
-SIGLIP_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_siglip_cosine.bin")
+SIGLIP_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_siglip_L2.bin")
 SIGLIP_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_siglip2.json")
 FDP_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_fdp_cosine.bin")
 FDP_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_fdp.json")
@@ -369,4 +371,4 @@ def neighboring_frames():
         return jsonify({"error": f"Failed to fetch neighboring frames: {str(e)}"}), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=2714, debug=False)
+    app.run(host="0.0.0.0", port=8888, debug=False, threaded=True)
