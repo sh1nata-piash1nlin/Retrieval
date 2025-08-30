@@ -135,10 +135,17 @@ function renderSlider(frames, initialIndex) {
   const carouselInner = document.getElementById('carouselInner');
   const frameInfo = document.getElementById('frameInfo');
   const carouselEl = document.getElementById('frameCarousel');
+
+  // Dispose of existing carousel instance to prevent conflicts
+  if (carouselEl.carousel) {
+    bootstrap.Carousel.getInstance(carouselEl)?.dispose();
+  }
+
   const carousel = new bootstrap.Carousel(carouselEl, {
     interval: false,
     ride: false,
-    wrap: false
+    wrap: false, 
+    keyboard: true
   });
 
   carouselInner.innerHTML = '';
@@ -149,17 +156,34 @@ function renderSlider(frames, initialIndex) {
     const item = document.createElement('div');
     item.className = `carousel-item ${isActive}`;
     item.innerHTML = `
-      <img src="${frame.image_url}" class="d-block w-100" alt="Frame ${frame.frame_num}">
+      <div class="text-center">
+        <img src="${frame.image_url}" class="d-block w-100" alt="Frame ${frame.frame_num}">
+        <div class="mt-2 p-2 bg-light rounded">
+          <small><strong>Script:</strong> ${frame.text || frame.script || "No script available"}</small>
+        </div>
+      </div>
     `;
     carouselInner.appendChild(item);
   });
 
-  let currentFrame = frames[initialIndex];
+  // Update frame info
+  let currentFrame = frames[initialIndex] || frames[0]; // Fallback to first frame if initialIndex is invalid
   frameInfo.textContent = `Video: ${currentFrame.video_id}, Frame: ${currentFrame.frame_num}`;
+
+  // Disable carousel controls if only one frame
+  const prevButton = carouselEl.querySelector('.carousel-control-prev');
+  const nextButton = carouselEl.querySelector('.carousel-control-next');
+  if (frames.length <= 1) {
+    prevButton.style.display = 'none';
+    nextButton.style.display = 'none';
+  } else {
+    prevButton.style.display = '';
+    nextButton.style.display = '';
+  }
 
   // Remove old listener to prevent duplicates
   if (carouselListener) {
-    carousel.removeEventListener('slid.bs.carousel', carouselListener);
+    carouselEl.removeEventListener('slid.bs.carousel', carouselListener);
   }
 
   // Define and attach new listener
@@ -168,22 +192,25 @@ function renderSlider(frames, initialIndex) {
     currentFrame = frames[activeIndex];
     frameInfo.textContent = `Video: ${currentFrame.video_id}, Frame: ${currentFrame.frame_num}`;
 
-    // Fetch more frames if at edges
-    if (activeIndex === 0 || activeIndex === frames.length - 1) {
+    // Fetch more frames if at edges and multiple frames are expected
+    if (frames.length > 1 && (activeIndex === 0 || activeIndex === frames.length - 1)) {
       const activeTab = document.querySelector('#resultTabs .nav-link.active');
-      const modelType = activeTab ? activeTab.getAttribute('data-model') : "siglip2";
-
-      fetchNeighboringFrames(currentFrame.video_id, currentFrame.frame_num, modelType)
+      const modelType = actifetchNeighboringFrames(currentFrame.video_id, currentFrame.frame_num, modelType)
         .then(newFrames => {
+          if (newFrames.length === 0) {
+            console.warn('No new frames returned from server');
+            return;
+          }
           const newIndex = newFrames.findIndex(f => f.frame_num === currentFrame.frame_num);
           renderSlider(newFrames, newIndex >= 0 ? newIndex : 0);
         })
         .catch(err => {
           console.error("Error fetching neighboring frames:", err);
+          alert("Could not load additional frames.");
         });
     }
   };
-  carousel.addEventListener('slid.bs.carousel', carouselListener);
+  carouselEl.addEventListener('slid.bs.carousel', carouselListener);
 
   // Show modal (only create once)
   if (!frameModal) {
@@ -191,7 +218,6 @@ function renderSlider(frames, initialIndex) {
   }
   frameModal.show();
 }
-
 
 
 

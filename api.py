@@ -253,15 +253,28 @@ def neighboring_frames():
 
     # Validate inputs
     if not video_id or not frame_num:
+        print(f"Error: Missing video_id ({video_id}) or frame_num ({frame_num})")
         return jsonify({"error": "Missing video_id or frame_num"}), 400
     try:
         frame_num = int(frame_num)
     except ValueError:
+        print(f"Error: Invalid frame_num ({frame_num}), must be an integer")
         return jsonify({"error": "Invalid frame_num, must be an integer"}), 400
     if model_type not in ["siglip2", "fdp", "internvideo2", "blip2"]:
+        print(f"Error: Invalid model_type ({model_type})")
         return jsonify({"error": "Invalid model_type, must be 'siglip2', 'fdp', 'internvideo2', or 'blip2'"}), 400
 
     try:
+        # Load the merged JSON metadata
+        json_path = os.path.join(DATA_DIR, "output_bin", "keyframes_id_search_asr.json")
+        metadata = []
+        if os.path.exists(json_path):
+            with open(json_path, "r", encoding="utf-8") as f:
+                metadata = json.load(f)
+            print(f"Loaded metadata with {len(metadata)} segments")
+        else:
+            print(f"Warning: Metadata JSON file not found at {json_path}, proceeding without text")
+
         # Find the keyframe directory for the video
         keyframe_dirs = get_keyframe_video_dirs()
         video_path = None
@@ -274,6 +287,7 @@ def neighboring_frames():
                 break
 
         if not video_path:
+            print(f"Error: Video directory not found for {video_id}")
             return jsonify({"error": f"Video {video_id} not found"}), 404
 
         # Get all frame files in the video directory
@@ -282,46 +296,77 @@ def neighboring_frames():
             key=lambda x: int(os.path.splitext(x)[0])
         )
         if not frame_files:
+            print(f"Error: No frames found in {video_path}")
             return jsonify({"error": f"No frames found for video {video_id}"}), 404
 
-        # Find the current frame and its neighbors
-        current_frame = f"{frame_num:06d}.jpg"  # Assuming frame_num is zero-padded (e.g., 0001.jpg)
+        print(f"Found {len(frame_files)} frame files: {[f for f in frame_files[:5]]}...")
+
+        # Find the current frame or the closest frame
+        frame_nums = [int(os.path.splitext(f)[0]) for f in frame_files]
+        current_frame = f"{frame_num:06d}.jpg"
         if current_frame not in frame_files:
-            return jsonify({"error": f"Frame {frame_num} not found for video {video_id}"}), 404
+            closest_frame_num = min(frame_nums, key=lambda x: abs(x - frame_num))
+            current_frame = f"{closest_frame_num:06d}.jpg"
+            frame_num = closest_frame_num
+            print(f"Warning: Frame {frame_num:06d}.jpg not found, using closest frame {current_frame}")
 
         current_idx = frame_files.index(current_frame)
         frames = []
 
+        # Helper function to get text from metadata
+        def get_text_for_frame(frame_num):
+            for segment in metadata:
+                if (segment["video"] == f"{video_id}.mp4" and
+                    segment["start_frame"] <= frame_num <= segment["end_frame"]):
+                    return segment["text"]
+            return "No script available"
+
         # Add previous frame (if exists)
         if current_idx > 0:
             prev_frame = frame_files[current_idx - 1]
+            prev_frame_num = int(os.path.splitext(prev_frame)[0])
             frames.append({
                 "image_url": f"/data_aichallenge2025/{base_dir_name}/keyframes/{video_id}/{prev_frame}",
-                "frame_num": int(os.path.splitext(prev_frame)[0]),
-                "video_id": video_id
+                "frame_num": prev_frame_num,
+                "video_id": video_id,
+                "text": get_text_for_frame(prev_frame_num)
             })
+            print(f"Added previous frame: {prev_frame}")
 
         # Add current frame
         frames.append({
             "image_url": f"/data_aichallenge2025/{base_dir_name}/keyframes/{video_id}/{current_frame}",
             "frame_num": frame_num,
-            "video_id": video_id
+            "video_id": video_id,
+            "text": get_text_for_frame(frame_num)
         })
+        print(f"Added current frame: {current_frame}")
 
         # Add next frame (if exists)
         if current_idx < len(frame_files) - 1:
             next_frame = frame_files[current_idx + 1]
+            next_frame_num = int(os.path.splitext(next_frame)[0])
             frames.append({
                 "image_url": f"/data_aichallenge2025/{base_dir_name}/keyframes/{video_id}/{next_frame}",
-                "frame_num": int(os.path.splitext(next_frame)[0]),
-                "video_id": video_id
+                "frame_num": next_frame_num,
+                "video_id": video_id,
+                "text": get_text_for_frame(next_frame_num)
             })
-        print(frames)
+            print(f"Added next frame: {next_frame}")
+
+        # Sort frames by frame_num to ensure correct order
+        frames.sort(key=lambda x: x["frame_num"])
+
+        if not frames:
+            print(f"Error: No valid frames found for video {video_id}")
+            return jsonify({"error": "No valid frames found"}), 404
+
+        print(f"Returning {len(frames)} frames: {[f['frame_num'] for f in frames]}")
         return jsonify({"frames": frames})
 
     except Exception as e:
+        print(f"Error: Failed to fetch neighboring frames: {str(e)}")
         return jsonify({"error": f"Failed to fetch neighboring frames: {str(e)}"}), 500
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=2714, debug=False)
