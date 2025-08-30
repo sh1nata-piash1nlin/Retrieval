@@ -276,7 +276,16 @@ def neighboring_frames():
             print(f"Loaded metadata with {len(metadata)} segments")
         else:
             print(f"Warning: Metadata JSON file not found at {json_path}, proceeding without text")
-
+        # Load video metadata to get watch_url
+        video_json_path = os.path.join(MEDIA_INFO_DIR, f"{video_id}.json")
+        watch_url = "No URL available"
+        if os.path.exists(video_json_path):
+            with open(video_json_path, "r", encoding="utf-8") as f:
+                video_metadata = json.load(f)
+                watch_url = video_metadata.get("watch_url", "No URL available")
+            print(f"Loaded video metadata for {video_id}, watch_url: {watch_url}")
+        else:
+            print(f"Warning: Video metadata JSON not found at {video_json_path}")
         # Find the keyframe directory for the video
         keyframe_dirs = get_keyframe_video_dirs()
         video_path = None
@@ -327,19 +336,22 @@ def neighboring_frames():
         if current_idx > 0:
             prev_frame = frame_files[current_idx - 1]
             prev_frame_num = int(os.path.splitext(prev_frame)[0])
+            prev_timestamp = int(prev_frame_num / 30.0)
             frames.append({
                 "image_url": f"/data_aichallenge2025/{base_dir_name}/keyframes/{video_id}/{prev_frame}",
                 "frame_num": prev_frame_num,
                 "video_id": video_id,
+                'watch_url': f"{watch_url}&t={prev_timestamp}s" if watch_url != "No URL available" else watch_url,
                 "text": get_text_for_frame(prev_frame_num)
             })
             print(f"Added previous frame: {prev_frame}")
-
+        current_timestamp = int(frame_num / 30.0)
         # Add current frame
         frames.append({
             "image_url": f"/data_aichallenge2025/{base_dir_name}/keyframes/{video_id}/{current_frame}",
             "frame_num": frame_num,
             "video_id": video_id,
+            'watch_url': f"{watch_url}&t={current_timestamp}s" if watch_url != "No URL available" else watch_url,
             "text": get_text_for_frame(frame_num)
         })
         print(f"Added current frame: {current_frame}")
@@ -348,10 +360,12 @@ def neighboring_frames():
         if current_idx < len(frame_files) - 1:
             next_frame = frame_files[current_idx + 1]
             next_frame_num = int(os.path.splitext(next_frame)[0])
+            next_timestamp = int(next_frame_num / 30.0)
             frames.append({
                 "image_url": f"/data_aichallenge2025/{base_dir_name}/keyframes/{video_id}/{next_frame}",
                 "frame_num": next_frame_num,
                 "video_id": video_id,
+                'watch_url': f"{watch_url}&t={next_timestamp}s" if watch_url != "No URL available" else watch_url,
                 "text": get_text_for_frame(next_frame_num)
             })
             print(f"Added next frame: {next_frame}")

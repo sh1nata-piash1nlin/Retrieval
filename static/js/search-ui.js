@@ -160,6 +160,7 @@ function renderSlider(frames, initialIndex) {
         <img src="${frame.image_url}" class="d-block w-100" alt="Frame ${frame.frame_num}">
         <div class="mt-2 p-2 bg-light rounded">
           <small><strong>Script:</strong> ${frame.text || frame.script || "No script available"}</small>
+          <p><strong>Watch Video:</strong> <a href="${frame.watch_url || '#'}" target="_blank" rel="noopener noreferrer">${frame.watch_url || "No URL available"}</a></p>
         </div>
       </div>
     `;
