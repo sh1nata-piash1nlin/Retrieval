@@ -10,7 +10,9 @@ const ICONS = {
   "OCR Match": "fa-regular fa-star",
   "Subtitle Match": "fa-solid fa-align-left",
   "Similar Image Search": "fa-regular fa-image",
-  "Similar Frame Search": "fa-solid fa-image"
+  "Similar Frame Search": "fa-solid fa-image",
+  "PE Search": "fa-solid fa-eye" 
+
 };
 
 // HTML templates for each tab
@@ -98,6 +100,19 @@ const TEMPLATES = {
       <!-- Subtitle search results will be loaded here -->
     </div>
   `,
+  "PE Search": () => `
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div></div>
+      <div class="search-bar w-75 d-flex align-items-center gap-2">
+        <input type="text" class="form-control" placeholder="Nhập mô tả tìm kiếm PE-Core..." />
+        <button class="btn btn-primary" id="pecore-search-btn">Search</button>
+      </div>
+      <div></div>
+    </div>
+    <div class="search-results row row-cols-5 g-3">
+      <!-- PE-Core search results will be loaded here -->
+    </div>
+  `,
   "Similar Image Search": () => `
     <div class="mb-3 d-flex gap-2">
       <input type="file" class="form-control" accept="image/*" id="image-upload" />
@@ -131,7 +146,7 @@ let frameModal = null;
 let carouselListener = null;
 
 // Function to render slider modal
-function renderSlider(frames, initialIndex) {
+function renderSlider(frames, initialFrameNum) {
   const carouselInner = document.getElementById('carouselInner');
   const frameInfo = document.getElementById('frameInfo');
   const carouselEl = document.getElementById('frameCarousel');
@@ -139,6 +154,18 @@ function renderSlider(frames, initialIndex) {
   // Dispose of existing carousel instance to prevent conflicts
   if (carouselEl.carousel) {
     bootstrap.Carousel.getInstance(carouselEl)?.dispose();
+  }
+
+  // Find the index of the frame with the requested frame_num
+  let initialIndex = frames.findIndex(f => f.frame_num === initialFrameNum);
+  if (initialIndex === -1) {
+    console.warn(`Frame ${initialFrameNum} not found in returned frames, defaulting to closest`);
+    // Find the closest frame if exact match not found
+    initialIndex = frames.reduce((closestIdx, frame, idx) => {
+      const currentDiff = Math.abs(frame.frame_num - initialFrameNum);
+      const closestDiff = Math.abs(frames[closestIdx].frame_num - initialFrameNum);
+      return currentDiff < closestDiff ? idx : closestIdx;
+    }, 0);
   }
 
   const carousel = new bootstrap.Carousel(carouselEl, {
@@ -168,7 +195,7 @@ function renderSlider(frames, initialIndex) {
   });
 
   // Update frame info
-  let currentFrame = frames[initialIndex] || frames[0]; // Fallback to first frame if initialIndex is invalid
+  const currentFrame = frames[initialIndex];
   frameInfo.textContent = `Video: ${currentFrame.video_id}, Frame: ${currentFrame.frame_num}`;
 
   // Disable carousel controls if only one frame
@@ -180,6 +207,7 @@ function renderSlider(frames, initialIndex) {
   } else {
     prevButton.style.display = '';
     nextButton.style.display = '';
+    carousel.to(initialIndex);
   }
 
   // Remove old listener to prevent duplicates
@@ -190,27 +218,27 @@ function renderSlider(frames, initialIndex) {
   // Define and attach new listener
   carouselListener = (e) => {
     const activeIndex = e.to;
-    currentFrame = frames[activeIndex];
+    const currentFrame = frames[activeIndex];
     frameInfo.textContent = `Video: ${currentFrame.video_id}, Frame: ${currentFrame.frame_num}`;
 
     // Fetch more frames if at edges and multiple frames are expected
     if (frames.length > 1 && (activeIndex === 0 || activeIndex === frames.length - 1)) {
       const activeTab = document.querySelector('#resultTabs .nav-link.active');
-      const modelType = actifetchNeighboringFrames(currentFrame.video_id, currentFrame.frame_num, modelType)
+      const modelType = activeTab ? activeTab.getAttribute('data-model') : "pe_core"; // Ensure modelType is defined
+      fetchNeighboringFrames(currentFrame.video_id, currentFrame.frame_num, modelType)
         .then(newFrames => {
           if (newFrames.length === 0) {
             console.warn('No new frames returned from server');
             return;
           }
-          const newIndex = newFrames.findIndex(f => f.frame_num === currentFrame.frame_num);
-          renderSlider(newFrames, newIndex >= 0 ? newIndex : 0);
+          renderSlider(newFrames, currentFrame.frame_num);
         })
         .catch(err => {
           console.error("Error fetching neighboring frames:", err);
           alert("Could not load additional frames.");
         });
-    }
-  };
+      }
+    };
   carouselEl.addEventListener('slid.bs.carousel', carouselListener);
 
   // Show modal (only create once)
@@ -241,7 +269,7 @@ function renderResults(results, container) {
     const labelElement = imgCard.querySelector('.img-label'); // Define labelElement
     const numberElement = imgCard.querySelector('.img-number'); // Define numberElement
     const activeTab = document.querySelector('#resultTabs .nav-link.active');
-    const modelType = activeTab ? activeTab.getAttribute('data-model') : "siglip2";
+    const modelType = activeTab ? activeTab.getAttribute('data-model') : "pe_core";
     const topK = document.getElementById('kValue')?.value || 30;
 
     // Click on image for similarity search
@@ -265,11 +293,7 @@ function renderResults(results, container) {
         e.stopPropagation();
         fetchNeighboringFrames(result.video_id, result.frame_num, modelType)
           .then(frames => {
-            let initialIndex = frames.findIndex(f => f.frame_num === result.frame_num);
-            if (initialIndex === -1) {
-              initialIndex = 0;
-            }
-            renderSlider(frames, initialIndex);
+            renderSlider(frames, result.frame_num);
           })
           .catch(err => {
             console.error("Error fetching neighboring frames:", err);
@@ -408,7 +432,7 @@ function openTab(label) {
           return;
         }
         const topK = kValueInput ? kValueInput.value : 30;
-        handleImageSearch(file, 'siglip', topK, resultsContainer); // Adjust model_type as needed
+        handleImageSearch(file, 'pe_core', topK, resultsContainer); // Adjust model_type as needed
       });
     } else {
       searchBtn.addEventListener('click', () => {
@@ -422,11 +446,12 @@ function openTab(label) {
           'InternVideo2 Search': 'internvideo2',
           'blip2 Search': 'blip2', // Map to available model; adjust as needed
           'SigLIP2 Search': 'siglip2',
-          'bge-m3 Search': 'siglip', // Map to available model; adjust as needed
+          'bge-m3 Search': 'siglip2', // Map to available model; adjust as needed
           'FDP Search': 'fdp',
-          'OCR Match': 'siglip', // Map to available model; adjust as needed
-          'Subtitle Match': 'siglip' // Map to available model; adjust as needed
-        }[label] || 'blip2';
+          'OCR Match': 'siglip2', 
+          'PE Search': 'pe_core', // Map to available model; adjust as needed
+          'Subtitle Match': 'siglip2' // Map to available model; adjust as needed
+        }[label] || 'pe_core';
         handleTextSearch(query, modelType, topK, resultsContainer);
       });
     }
@@ -516,3 +541,7 @@ tabBar.addEventListener('click', (e) => {
 
 // Initialize with InternVideo2 Search tab open
 openTab('InternVideo2 Search');
+
+document.getElementById('checkFramesBtn').addEventListener('click', function() {
+  window.location.href = '/check_frames';
+});

@@ -15,18 +15,57 @@ import json
 import clip
 from models.blip2.blip2 import BLIP2Model
 
+import models.perception_models.core.vision_encoder.pe as pe
+import models.perception_models.core.vision_encoder.transforms as transforms
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 try:
     from torchvision.transforms import InterpolationMode
     BICUBIC = InterpolationMode.BICUBIC
 except ImportError:
     BICUBIC = Image.BICUBIC
+
+def pil_to_tensor_no_numpy(pic: Image.Image) -> torch.Tensor:
+    """
+    Convert a PIL RGB image to a CHW float tensor in [0,1] WITHOUT using numpy.
+    """
+    if pic.mode != "RGB":
+        pic = pic.convert("RGB")
+    w, h = pic.size
+    b = pic.tobytes()
+    data = torch.frombuffer(b, dtype=torch.uint8).clone()
+    try:
+        data = data.view(h, w, 3)
+    except Exception:
+        data = data.reshape(h, w, 3)
+    tensor = data.permute(2, 0, 1).to(dtype=torch.float32).div(255.0)
+    return tensor
+
+def get_image_transform_no_numpy(
+    image_size: int,
+    center_crop: bool = False,
+    interpolation: InterpolationMode = BICUBIC
+):
+    if center_crop:
+        crop = [
+            Resize(image_size, interpolation=interpolation),
+            CenterCrop(image_size)
+        ]
+    else:
+        crop = [
+            Resize((image_size, image_size), interpolation=interpolation)
+        ]
+    return Compose(crop + [
+        lambda x: x.convert("RGB"),
+        lambda x: pil_to_tensor_no_numpy(x),
+        Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5], inplace=True),
+    ])
+    
 class Faiss:
     def __init__(
         self,
         bin_files: List[str],
         dict_jsons: List[str],
-        model_types: List[str],  # New parameter to specify model type per index
+        model_types: List[str],  
         device: str = "cuda:1",
     ):
         self.device = device if torch.cuda.is_available() else "cpu"
@@ -43,23 +82,43 @@ class Faiss:
         except Exception as e:
             print(f"Failed to initialize Translation: {e}")
             self.translate = None
-        # Initialize InternVideo2Model
-        self.internvideo_model = InternVideo2Model(device=self.device)
-        # Initialize SigLIP model
-        self.siglip_ckpt = "google/siglip2-base-patch16-512"
-        self.siglip_model = AutoModel.from_pretrained(self.siglip_ckpt).to(self.device).eval()
-        self.siglip_processor = AutoProcessor.from_pretrained(self.siglip_ckpt)
-        # Initialize CustomCLIP (FDP) model
-        self.clip_model, _ = clip.load('RN50', device='cuda')
-        self.clip_model = self.clip_model.float().eval()
-        self.fdp_model = CustomCLIP('cuda', self.clip_model)
-        self.fdp_model.load_state_dict(torch.load('models/FDP/RN50_reformulated.pth', map_location='cuda'), strict=False)
-        self.fdp_model = self.fdp_model.eval()
-        self.fdp_preprocess = self._get_preprocess(input_resolution=640)
+        self.internvideo_model = None
+        if "internvideo2" in model_types:
+            self.internvideo_model = InternVideo2Model(device=self.device)
+
+        # SigLIP Model
+        self.siglip_model = None
+        self.siglip_processor = None
+        if "siglip" in model_types:
+            self.siglip_ckpt = "google/siglip2-base-patch16-512"
+            self.siglip_model = AutoModel.from_pretrained(self.siglip_ckpt).to(self.device).eval()
+            self.siglip_processor = AutoProcessor.from_pretrained(self.siglip_ckpt)
+
+        # CustomCLIP (FDP) Model
+        self.clip_model = None
+        self.fdp_model = None
+        self.fdp_preprocess = None
+        if "fdp" in model_types:
+            self.clip_model, _ = clip.load('RN50', device='cuda')
+            self.clip_model = self.clip_model.float().eval()
+            self.fdp_model = CustomCLIP('cuda', self.clip_model)
+            self.fdp_model.load_state_dict(torch.load('models/FDP/RN50_reformulated.pth', map_location='cuda'), strict=False)
+            self.fdp_model = self.fdp_model.eval()
+            self.fdp_preprocess = self._get_preprocess(input_resolution=640)
+
         if "blip2" in model_types:
             self.blip2_model = BLIP2Model(device=self.device)
         else:
             self.blip2_model = None
+        if "pe_core" in model_types:
+            self.pe_core_model = pe.CLIP.from_config("PE-Core-G14-448", pretrained=True).to(self.device).eval()
+            self.pe_core_preprocess = get_image_transform_no_numpy(self.pe_core_model.image_size)
+            self.pe_core_tokenizer = transforms.get_text_tokenizer(self.pe_core_model.context_length)
+            print("loaded pe_core successful")
+        else:
+            self.pe_core_model = None
+            self.pe_core_preprocess = None
+            self.pe_core_tokenizer = None
         self.dimension = self.indexes[0].d if self.indexes else None
     def _get_preprocess(self, input_resolution=640):
         """Returns the preprocessing pipeline for CustomCLIP images."""
@@ -114,7 +173,14 @@ class Faiss:
         elif model_type == "blip2":
             if self.blip2_model is None:
                 raise ValueError("BLIP2Model is not initialized")
-            return self.blip2_model.text_encoder(text).astype(np.float32)
+            return self.blip2_model.text_encoder(text).astype(np.float16)
+        elif model_type == "pe_core":
+            if self.pe_core_model is None or self.pe_core_tokenizer is None:
+                raise ValueError("PECore model or tokenizer not initialized")
+            with torch.no_grad():
+                inputs = self.pe_core_tokenizer([text]).to(self.device)
+                feats = self.pe_core_model.encode_text(inputs, normalize=True)
+            return feats.cpu().numpy().astype(np.float32).flatten()
         else:
             raise ValueError("model_type must be 'siglip2', 'fdp', or 'internvideo2'")
 
@@ -164,6 +230,15 @@ class Faiss:
                 return self.blip2_model.image_encoder(image).astype(np.float32)
             else:
                 raise ValueError("Query image must be a PIL.Image or a file path")
+        elif model_type == "pe_core":
+            if self.pe_core_model is None or self.pe_core_preprocess is None:
+                raise ValueError("PECore model or preprocess not initialized")
+            if isinstance(image, str):
+                image = Image.open(image)
+            with torch.no_grad():
+                inputs = self.pe_core_preprocess(image).unsqueeze(0).to(self.device)
+                feats = self.pe_core_model.encode_image(inputs, normalize=True)
+            return feats.detach().cpu().numpy().astype(np.float32).flatten()
         else:
             raise ValueError("model_type must be 'siglip2', 'fdp', or 'internvideo2'")
 
@@ -205,9 +280,15 @@ class Faiss:
                 continue  # Skip indices that don't match the requested model_type
             distances, indices = index.search(qvec, top_k)
             print(indices.shape)
-            if model_type == "fdp":
-                logit_scale = self.fdp_model.logit_scale.exp()
-                distances = torch.tensor(distances, device='cuda') * logit_scale
+            # Apply logit_scale for CLIP-based models
+            if model_type in ["fdp", "pe_core"]:
+                if model_type == "fdp":
+                    logit_scale = self.fdp_model.logit_scale.exp()
+                elif model_type == "pe_core":
+                    if self.pe_core_model is None:
+                        raise ValueError("PECore model not initialized")
+                    logit_scale = self.pe_core_model.logit_scale.exp()
+                distances = torch.tensor(distances, device=self.device) * logit_scale
                 distances = distances.softmax(dim=-1).detach().cpu().numpy()
 
             hits = []
@@ -258,11 +339,17 @@ class Faiss:
             if idx_model_type != model_type:
                 continue  # Skip indices that don't match the requested model_type
             distances, indices = index.search(qvec, top_k)
-
-            if model_type == "fdp":
-                logit_scale = self.fdp_model.logit_scale.exp()
+            
+            # Apply logit_scale for CLIP-based models
+            if model_type in ["fdp", "pe_core"]:
+                if model_type == "fdp":
+                    logit_scale = self.fdp_model.logit_scale.exp()
+                elif model_type == "pe_core":
+                    if self.pe_core_model is None:
+                        raise ValueError("PECore model not initialized")
+                    logit_scale = self.pe_core_model.logit_scale.exp()
                 distances = torch.tensor(distances, device=self.device) * logit_scale
-                distances = distances.softmax(dim=-1).cpu().numpy()
+                distances = distances.softmax(dim=-1).detach().cpu().numpy()
 
             hits = []
             for dist, idx in zip(distances[0], indices[0]):

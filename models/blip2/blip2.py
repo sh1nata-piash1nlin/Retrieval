@@ -26,7 +26,7 @@ class BLIP2Model():
     def text_encoder(self, text: str):
         text_processed = self.__text_processors["eval"](text)
         text_feat = self.__model.extract_features({"text_input": text_processed}, mode="text").text_embeds[0,0,:] 
-        text_feat = text_feat.detach().cpu().detach().numpy().astype(np.float32).reshape(1,-1)
+        text_feat = text_feat.detach().cpu().detach().numpy().astype(np.float16).reshape(1,-1)
         return text_feat
     
     def image_encoder(self, image_path: str) :

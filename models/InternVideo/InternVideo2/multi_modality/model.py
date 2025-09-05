@@ -98,7 +98,7 @@ class InternVideo2Model():
         return model, config
 
     def text_encoder(self, text: str):
-        text_feat = self.__model.get_txt_feat(text).cpu().detach().numpy().astype(np.float32)
+        text_feat = self.__model.get_txt_feat(text).cpu().detach().numpy().astype(np.float16)
         return text_feat
 
     def image_encoder(self, image_path: str):

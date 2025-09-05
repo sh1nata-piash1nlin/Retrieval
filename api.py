@@ -33,8 +33,11 @@ FDP_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_fdp_cosine.bin")
 FDP_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_fdp.json")
 INTERNVIDEO2_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_InternVideo2_L2.bin")
 INTERNVIDEO2_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_internvideo2.json")
-BLIP2_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_blip2_l2.bin")  # Added BLIP-2 FAISS index
-BLIP2_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_blip2.json")  # Added BLIP-2 JSON metadata
+BLIP2_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_blip2_L2.bin")  # Added BLIP-2 FAISS index
+BLIP2_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_blip2_L2.json")  # Added BLIP-2 JSON metadata
+PECORE_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_pecore_L2.bin")
+PECORE_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_pecore.json")
+
 faiss_index = None
 def color_for_video(video_id: str) -> str:
     if not video_id:
@@ -86,58 +89,70 @@ def sample_images_from_videos(num_images=30, images_per_video=(3, 4)):
     random.shuffle(results)
     return results[:num_images]
 
-# try:
+# # try:
+# faiss_index = Faiss(
+#     bin_files=[SIGLIP_FAISS_BIN, FDP_FAISS_BIN, INTERNVIDEO2_FAISS_BIN, BLIP2_FAISS_BIN, PECORE_FAISS_BIN],
+#     dict_jsons=[SIGLIP_JSON, FDP_JSON, INTERNVIDEO2_JSON, BLIP2_JSON, PECORE_JSON],
+#     model_types=["siglip2", "fdp", "internvideo2", "blip2", "pe_core"],
+#     device=device
+# )
 faiss_index = Faiss(
-    bin_files=[SIGLIP_FAISS_BIN, FDP_FAISS_BIN, INTERNVIDEO2_FAISS_BIN],
-    dict_jsons=[SIGLIP_JSON, FDP_JSON, INTERNVIDEO2_JSON],
-    model_types=["siglip2", "fdp", "internvideo2"],  # Specify model types
+    bin_files=[PECORE_FAISS_BIN],
+    dict_jsons=[ PECORE_JSON],
+    model_types=["pe_core"],
     device=device
 )
-# Validate index and JSON alignment
-try:
-    faiss_index = Faiss(
-        bin_files=[SIGLIP_FAISS_BIN, FDP_FAISS_BIN, INTERNVIDEO2_FAISS_BIN, BLIP2_FAISS_BIN],
-        dict_jsons=[SIGLIP_JSON, FDP_JSON, INTERNVIDEO2_JSON, BLIP2_JSON],
-        model_types=["siglip2", "fdp", "internvideo2", "blip2"],  # Added blip2
-        device=device
-    )
-    # Validate index and JSON alignment
-    for idx, (bin_file, json_file, model_type) in enumerate(zip(
-            [SIGLIP_FAISS_BIN, FDP_FAISS_BIN, INTERNVIDEO2_FAISS_BIN, BLIP2_FAISS_BIN],
-            [SIGLIP_JSON, FDP_JSON, INTERNVIDEO2_JSON, BLIP2_JSON],
-            ["siglip2", "fdp", "internvideo2", "blip2"]
-        )):
-            index_count = faiss_index.indexes[idx].ntotal
-            with open(json_file, "r") as f:
-                data = json.load(f)
-            # Preprocess JSON to match Faiss._read_json
-            if model_type == "internvideo2":
-                if isinstance(data, list) and all(isinstance(item, list) for item in data):
-                    id_to_path = {"paths": data}
-                    mapping_count = len(data)  # Number of scenes
-                else:
-                    raise ValueError(f"Expected nested list for InternVideo2 JSON in {json_file}")
-            else:  # For siglip2, fdp, blip2
-                if isinstance(data, list) and all(isinstance(item, str) for item in data):
-                    id_to_path = {"paths": data}
-                    mapping_count = len(data)  # Number of frames
-                elif isinstance(data, dict) and "paths" in data:
-                    id_to_path = data
-                    mapping_count = len(data["paths"])
-                else:
-                    raise ValueError(f"Expected flat list of strings or dict with 'paths' for {model_type} JSON in {json_file}")
-            if index_count != mapping_count:
-                raise RuntimeError(
-                    f"Index/mapping size mismatch for {bin_file}: index={index_count}, paths={mapping_count}. "
-                    "Rebuild the FAISS bin and JSON together."
-                )
-except Exception as e:
-    print(f"Faiss index or mapping not loaded: {e}")
-    faiss_index = None
+# # # Validate index and JSON alignment
+# try:
+#     faiss_index = Faiss(
+#         bin_files=[SIGLIP_FAISS_BIN, FDP_FAISS_BIN, INTERNVIDEO2_FAISS_BIN, BLIP2_FAISS_BIN, PECORE_FAISS_BIN],
+#         dict_jsons=[SIGLIP_JSON, FDP_JSON, INTERNVIDEO2_JSON, BLIP2_JSON, PECORE_JSON],
+#         model_types=["siglip2", "fdp", "internvideo2", "blip2", "pe_core"],
+#         device=device
+#     )
+#     # Validate index and JSON alignment
+#     for idx, (bin_file, json_file, model_type) in enumerate(zip(
+#             [SIGLIP_FAISS_BIN, FDP_FAISS_BIN, INTERNVIDEO2_FAISS_BIN, BLIP2_FAISS_BIN, PECORE_FAISS_BIN],
+#             [SIGLIP_JSON, FDP_JSON, INTERNVIDEO2_JSON, BLIP2_JSON, PECORE_JSON],
+#             ["siglip2", "fdp", "internvideo2", "blip2", "pe_core"]
+#     )):
+#             index_count = faiss_index.indexes[idx].ntotal
+#             with open(json_file, "r") as f:
+#                 data = json.load(f)
+#             # Preprocess JSON to match Faiss._read_json
+#             if model_type == "internvideo2":
+#                 if isinstance(data, list) and all(isinstance(item, list) for item in data):
+#                     id_to_path = {"paths": data}
+#                     mapping_count = len(data)  # Number of scenes
+#                 else:
+#                     raise ValueError(f"Expected nested list for InternVideo2 JSON in {json_file}")
+#             else:  # For siglip2, fdp, blip2
+#                 if isinstance(data, list) and all(isinstance(item, str) for item in data):
+#                     id_to_path = {"paths": data}
+#                     mapping_count = len(data)  # Number of frames
+#                 elif isinstance(data, dict) and "paths" in data:
+#                     id_to_path = data
+#                     mapping_count = len(data["paths"])
+#                 else:
+#                     raise ValueError(f"Expected flat list of strings or dict with 'paths' for {model_type} JSON in {json_file}")
+#             if index_count != mapping_count:
+#                 raise RuntimeError(
+#                     f"Index/mapping size mismatch for {bin_file}: index={index_count}, paths={mapping_count}. "
+#                     "Rebuild the FAISS bin and JSON together."
+#                 )
+# except Exception as e:
+#     print(f"Faiss index or mapping not loaded: {e}")
+#     faiss_index = None
 
 @app.route("/")
 def home():
     return render_template("home.html")
+@app.route("/check_frames")
+def check_frames():
+    # Get video_id and frame_num from query params, fallback to defaults
+    video_id = request.args.get("video_id", "L30_V009")
+    frame_num = request.args.get("frame_num", "1")
+    return render_template("check_frames.html", video_id=video_id, frame_num=frame_num)
 
 @app.route("/data_aichallenge2025/<path:subpath>")
 def serve_data_aichallenge2025(subpath):
@@ -156,7 +171,7 @@ def text_search():
     query = request.form.get("query")
     top_k = int(request.form.get("top_k", 30))
     model_type = request.form.get("model_type", "siglip2")
-    if model_type not in ["siglip2", "fdp", "internvideo2", "blip2"]:
+    if model_type not in ["siglip2", "fdp", "internvideo2", "blip2","pe_core"]:
         return jsonify({"error": "Invalid model_type, must be 'siglip2', 'fdp', or 'internvideo2'"}), 400
     if not query or not faiss_index:
         return jsonify({"error": "Missing query or index not loaded"}), 400
@@ -217,14 +232,14 @@ def image_search():
     image_file = request.files['image']
     top_k = int(request.form.get("top_k", 30))
     model_type = request.form.get("model_type", "siglip2")
-    if model_type not in ["siglip2", "fdp", "internvideo2", "blip2"]:
+    if model_type not in ["siglip2", "fdp", "internvideo2", "blip2", "pe_core"]:
         return jsonify({"error": "Invalid model_type, must be 'siglip2', 'fdp', or 'internvideo2'"}), 400
 
-    try:
-        image = Image.open(image_file).convert("RGB")
-        results = faiss_index.search_image(query_image=image, top_k=top_k, model_type=model_type)
-    except Exception as e:
-        return jsonify({"error": f"Search failed: {str(e)}"}), 500
+    # try:
+    image = Image.open(image_file).convert("RGB")
+    results = faiss_index.search_image(query_image=image, top_k=top_k, model_type=model_type)
+    # except Exception as e:
+    #     return jsonify({"error": f"Search failed: {str(e)}"}), 500
 
     images = []
     for idx, hits in enumerate(results):
@@ -262,7 +277,7 @@ def neighboring_frames():
     except ValueError:
         print(f"Error: Invalid frame_num ({frame_num}), must be an integer")
         return jsonify({"error": "Invalid frame_num, must be an integer"}), 400
-    if model_type not in ["siglip2", "fdp", "internvideo2", "blip2"]:
+    if model_type not in ["siglip2", "fdp", "internvideo2", "blip2", "pe_core"]:
         print(f"Error: Invalid model_type ({model_type})")
         return jsonify({"error": "Invalid model_type, must be 'siglip2', 'fdp', 'internvideo2', or 'blip2'"}), 400
 
@@ -276,16 +291,22 @@ def neighboring_frames():
             print(f"Loaded metadata with {len(metadata)} segments")
         else:
             print(f"Warning: Metadata JSON file not found at {json_path}, proceeding without text")
+        
+        # Filter metadata for this video to optimize lookups
+        video_metadata = [seg for seg in metadata if seg["video"] == f"{video_id}.mp4"]
+        print(f"Filtered {len(video_metadata)} metadata segments for video {video_id}")
+
         # Load video metadata to get watch_url
         video_json_path = os.path.join(MEDIA_INFO_DIR, f"{video_id}.json")
         watch_url = "No URL available"
         if os.path.exists(video_json_path):
             with open(video_json_path, "r", encoding="utf-8") as f:
-                video_metadata = json.load(f)
-                watch_url = video_metadata.get("watch_url", "No URL available")
+                video_metadata_full = json.load(f)
+                watch_url = video_metadata_full.get("watch_url", "No URL available")
             print(f"Loaded video metadata for {video_id}, watch_url: {watch_url}")
         else:
             print(f"Warning: Video metadata JSON not found at {video_json_path}")
+        
         # Find the keyframe directory for the video
         keyframe_dirs = get_keyframe_video_dirs()
         video_path = None
@@ -324,65 +345,48 @@ def neighboring_frames():
         current_idx = frame_files.index(current_frame)
         frames = []
 
-        # Helper function to get text from metadata
+        # Helper function to get text from metadata (using filtered video_metadata)
         def get_text_for_frame(frame_num):
-            for segment in metadata:
-                if (segment["video"] == f"{video_id}.mp4" and
-                    segment["start_frame"] <= frame_num <= segment["end_frame"]):
+            for segment in video_metadata:
+                if (segment["start_frame"] <= frame_num <= segment["end_frame"]):
                     return segment["text"]
             return "No script available"
 
-        # Add previous frame (if exists)
-        if current_idx > 0:
-            prev_frame = frame_files[current_idx - 1]
-            prev_frame_num = int(os.path.splitext(prev_frame)[0])
-            prev_timestamp = int(prev_frame_num / 30.0)
-            frames.append({
-                "image_url": f"/data_aichallenge2025/{base_dir_name}/keyframes/{video_id}/{prev_frame}",
-                "frame_num": prev_frame_num,
-                "video_id": video_id,
-                'watch_url': f"{watch_url}&t={prev_timestamp}s" if watch_url != "No URL available" else watch_url,
-                "text": get_text_for_frame(prev_frame_num)
-            })
-            print(f"Added previous frame: {prev_frame}")
-        current_timestamp = int(frame_num / 30.0)
-        # Add current frame
-        frames.append({
-            "image_url": f"/data_aichallenge2025/{base_dir_name}/keyframes/{video_id}/{current_frame}",
-            "frame_num": frame_num,
-            "video_id": video_id,
-            'watch_url': f"{watch_url}&t={current_timestamp}s" if watch_url != "No URL available" else watch_url,
-            "text": get_text_for_frame(frame_num)
-        })
-        print(f"Added current frame: {current_frame}")
+        # Determine the range: up to 500 previous and 500 next frames
+        num_prev = 70
+        num_next = 70
+        start_idx = max(0, current_idx - num_prev)
+        end_idx = min(len(frame_files) - 1, current_idx + num_next)
 
-        # Add next frame (if exists)
-        if current_idx < len(frame_files) - 1:
-            next_frame = frame_files[current_idx + 1]
-            next_frame_num = int(os.path.splitext(next_frame)[0])
-            next_timestamp = int(next_frame_num / 30.0)
-            frames.append({
-                "image_url": f"/data_aichallenge2025/{base_dir_name}/keyframes/{video_id}/{next_frame}",
-                "frame_num": next_frame_num,
-                "video_id": video_id,
-                'watch_url': f"{watch_url}&t={next_timestamp}s" if watch_url != "No URL available" else watch_url,
-                "text": get_text_for_frame(next_frame_num)
-            })
-            print(f"Added next frame: {next_frame}")
+        print(f"Fetching frames from index {start_idx} to {end_idx} (current_idx: {current_idx})")
 
-        # Sort frames by frame_num to ensure correct order
+        for i in range(start_idx, end_idx + 1):
+            frame = frame_files[i]
+            frame_num_i = int(os.path.splitext(frame)[0])
+            timestamp = int(frame_num_i / 30.0)
+            frames.append({
+                "image_url": f"/data_aichallenge2025/{base_dir_name}/keyframes/{video_id}/{frame}",
+                "frame_num": frame_num_i,
+                "video_id": video_id,
+                'watch_url': f"{watch_url}&t={timestamp}s" if watch_url != "No URL available" else watch_url,
+                "text": get_text_for_frame(frame_num_i)
+            })
+            print(f"Added frame: {frame}")
+
+        # Sort frames by frame_num (though already sorted, for safety)
         frames.sort(key=lambda x: x["frame_num"])
 
         if not frames:
             print(f"Error: No valid frames found for video {video_id}")
             return jsonify({"error": "No valid frames found"}), 404
 
-        print(f"Returning {len(frames)} frames: {[f['frame_num'] for f in frames]}")
+        print(f"Returning {len(frames)} frames: {[f['frame_num'] for f in frames[:5]]}...")
         return jsonify({"frames": frames})
 
     except Exception as e:
         print(f"Error: Failed to fetch neighboring frames: {str(e)}")
         return jsonify({"error": f"Failed to fetch neighboring frames: {str(e)}"}), 500
+    
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8888, debug=False, threaded=True)

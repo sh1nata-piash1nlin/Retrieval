@@ -56,7 +56,7 @@ def create_npy(input_data_path: str):
     root_path = Path(input_data_path)
     video_folders = []
     for subdir in sorted(os.listdir(root_path)):
-        if "keyframes_Videos_L" not in subdir:
+        if "keyframes_Videos_" not in subdir:
             continue
         keyframes_path = os.path.join(root_path, subdir, "keyframes")
         if not os.path.isdir(keyframes_path):
