@@ -89,7 +89,7 @@ class Faiss:
         # SigLIP Model
         self.siglip_model = None
         self.siglip_processor = None
-        if "siglip" in model_types:
+        if "siglip2" in model_types:
             self.siglip_ckpt = "google/siglip2-base-patch16-512"
             self.siglip_model = AutoModel.from_pretrained(self.siglip_ckpt).to(self.device).eval()
             self.siglip_processor = AutoProcessor.from_pretrained(self.siglip_ckpt)

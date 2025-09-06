@@ -25,7 +25,7 @@ PALETTE = [
     "#E65100", "#5D4037", "#3E2723", "#263238"
 ]
 # Initialize Faiss with all models
-device = "cuda:1" if torch.cuda.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
 # SIGLIP_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_siglip_L2.bin")
 SIGLIP_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_siglip_L2.bin")
 SIGLIP_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_siglip2.json")
@@ -90,18 +90,18 @@ def sample_images_from_videos(num_images=30, images_per_video=(3, 4)):
     return results[:num_images]
 
 # # try:
-# faiss_index = Faiss(
-#     bin_files=[SIGLIP_FAISS_BIN, FDP_FAISS_BIN, INTERNVIDEO2_FAISS_BIN, BLIP2_FAISS_BIN, PECORE_FAISS_BIN],
-#     dict_jsons=[SIGLIP_JSON, FDP_JSON, INTERNVIDEO2_JSON, BLIP2_JSON, PECORE_JSON],
-#     model_types=["siglip2", "fdp", "internvideo2", "blip2", "pe_core"],
-#     device=device
-# )
 faiss_index = Faiss(
-    bin_files=[PECORE_FAISS_BIN],
-    dict_jsons=[ PECORE_JSON],
-    model_types=["pe_core"],
+    bin_files=[INTERNVIDEO2_FAISS_BIN, PECORE_FAISS_BIN],
+    dict_jsons=[INTERNVIDEO2_JSON, PECORE_JSON],
+    model_types=["internvideo2", "pe_core"],
     device=device
 )
+# faiss_index = Faiss(
+#     bin_files=[PECORE_FAISS_BIN],
+#     dict_jsons=[ PECORE_JSON],
+#     model_types=["pe_core"],
+#     device=device
+# )
 # # # Validate index and JSON alignment
 # try:
 #     faiss_index = Faiss(

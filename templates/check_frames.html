@@ -58,10 +58,12 @@
 </div>
 
 <script>
-  let framesCache = [];
-  let currentIdx = 0;
+  let framesMap = new Map();   // map: frame_num (Number) -> frame object
+  let frameNums = [];          // sorted array of frame_num (Number)
+  let currentFrameNum = null;  // actual frame number currently shown (Number)
+  let currentVideoId = null;
 
-  // Fetch API helper
+  // Fetch helper (giữ nguyên endpoint của bạn)
   function fetchNeighboringFrames(videoId, frameNum) {
     const formData = new FormData();
     formData.append('video_id', videoId);
@@ -72,95 +74,177 @@
       method: 'POST',
       body: formData
     })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) throw new Error(data.error);
-        return data.frames;
-      });
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) throw new Error(data.error);
+      return data.frames || [];
+    });
   }
 
-  // Render main frame only
-  function renderFrames(frames, currentIdx) {
-    const current = frames[currentIdx];
+  // Merge frames vào cache (no-duplicates) và sort frameNums
+  function mergeFrames(frames) {
+    let added = false;
+    for (const f of frames) {
+      const n = Number(f.frame_num);
+      if (!Number.isFinite(n)) continue;
+      if (!framesMap.has(n)) {
+        framesMap.set(n, f);
+        frameNums.push(n);
+        added = true;
+      }
+    }
+    if (added) frameNums.sort((a,b) => a - b);
+  }
+
+  // Tìm nearest frame nếu requested không tồn tại
+  function nearestFrameNum(target) {
+    if (frameNums.length === 0) return null;
+    let nearest = frameNums[0];
+    let bestDiff = Math.abs(nearest - target);
+    for (let i = 1; i < frameNums.length; i++) {
+      const d = Math.abs(frameNums[i] - target);
+      if (d < bestDiff) { bestDiff = d; nearest = frameNums[i]; }
+    }
+    return nearest;
+  }
+
+  // Render theo currentFrameNum
+  function renderCurrentFrame() {
+    if (currentFrameNum === null) return;
+    let frame = framesMap.get(Number(currentFrameNum));
+    if (!frame) {
+      // requested frame not in cache -> fallback nearest
+      const nearest = nearestFrameNum(Number(currentFrameNum));
+      if (nearest === null) {
+        alert("No frames available");
+        return;
+      }
+      currentFrameNum = nearest;
+      frame = framesMap.get(currentFrameNum);
+    }
+
     document.getElementById('currentFrame').classList.remove('d-none');
-    document.getElementById('currentFrameImg').src = current.image_url;
-    document.getElementById('currentVideoId').textContent = current.video_id;
-    document.getElementById('currentFrameNum').textContent = current.frame_num;
-    document.getElementById('currentScript').textContent = current.text || current.script || "No script available";
-    document.getElementById('currentWatchUrl').href = current.watch_url || "#";
-    document.getElementById('currentWatchUrl').textContent = current.watch_url || "No URL available";
+    document.getElementById('currentFrameImg').src = frame.image_url;
+    document.getElementById('currentVideoId').textContent = frame.video_id;
+    document.getElementById('currentFrameNum').textContent = frame.frame_num;
+    document.getElementById('currentScript').textContent = frame.text || frame.script || "No script available";
+    document.getElementById('currentWatchUrl').href = frame.watch_url || "#";
+    document.getElementById('currentWatchUrl').textContent = frame.watch_url || "No URL available";
 
-    // Disable prev/next if out of range
-    document.getElementById('prevFrameBtn').disabled = currentIdx <= 0;
-    document.getElementById('nextFrameBtn').disabled = false;
+    // Set prev/next enabled state based on sorted frameNums
+    const idx = frameNums.indexOf(Number(currentFrameNum));
+    document.getElementById('prevFrameBtn').disabled = (idx <= 0);
+    document.getElementById('nextFrameBtn').disabled = (idx === -1);
 
   }
 
-  // Load frames
+  // Load frames (search)
   function loadFrames(videoId, frameNum) {
+    // nếu đổi video, clear cache
+    if (currentVideoId !== videoId) {
+      framesMap.clear();
+      frameNums = [];
+      currentVideoId = videoId;
+      currentFrameNum = null;
+    }
+
     fetchNeighboringFrames(videoId, frameNum)
       .then(frames => {
-        framesCache = frames;
-        const idx = frames.findIndex(f => f.frame_num == frameNum);
-        currentIdx = idx === -1 ? 0 : idx;
-        renderFrames(frames, currentIdx);
+        mergeFrames(frames);
+
+        // Nếu server trả đúng frame bạn nhập thì dùng luôn
+        if (framesMap.has(Number(frameNum))) {
+          currentFrameNum = Number(frameNum);
+        } else {
+          // nếu không có, chọn nearest để hiển thị (và log để debug)
+          currentFrameNum = nearestFrameNum(Number(frameNum));
+          console.warn("Requested frame not found in response; showing nearest:", currentFrameNum, frames.map(f=>f.frame_num));
+        }
+        renderCurrentFrame();
       })
-      .catch(err => alert("Could not load frames: " + err.message));
+      .catch(err => {
+        console.error(err);
+        alert("Could not load frames: " + err.message);
+      });
   }
 
   // Form submit
   document.getElementById('searchForm').addEventListener('submit', function (e) {
     e.preventDefault();
     const videoId = document.getElementById('videoIdInput').value.trim();
-    const frameNum = parseInt(document.getElementById('frameNumInput').value.trim());
+    const frameNum = parseInt(document.getElementById('frameNumInput').value.trim(), 10);
+    if (!videoId || !Number.isFinite(frameNum)) return alert("Please enter valid video and frame");
     loadFrames(videoId, frameNum);
   });
 
-  // Prev / Next buttons
+  // Prev
   document.getElementById('prevFrameBtn').addEventListener('click', function () {
-    if (currentIdx > 0) {
-      currentIdx--;
-      renderFrames(framesCache, currentIdx);
-    } else {
-      const firstFrame = framesCache[currentIdx];
-      fetchNeighboringFrames(firstFrame.video_id, firstFrame.frame_num - 1) // fetch before
-        .then(frames => {
-          if (frames.length > 0) {
-            framesCache = frames;
-            // keep same index (0) instead of jumping to last
-            renderFrames(framesCache, currentIdx);
-          }
-        })
-        .catch(err => alert("Could not fetch previous frames: " + err.message));
+    if (!currentVideoId || currentFrameNum === null) return;
+    const idx = frameNums.indexOf(Number(currentFrameNum));
+
+    if (idx > 0) {
+      // đã có sẵn frame prev trong cache
+      currentFrameNum = frameNums[idx - 1];
+      renderCurrentFrame();
+      return;
     }
+
+    // Nếu idx === 0 (ở đầu cache) -> fetch thêm trước đó
+    const anchor = Number(currentFrameNum) - 1;
+    fetchNeighboringFrames(currentVideoId, anchor)
+      .then(frames => {
+        mergeFrames(frames);
+        // tìm lại index của old current, rồi lùi 1
+        const newIdx = frameNums.indexOf(Number(currentFrameNum));
+        if (newIdx > 0) {
+          currentFrameNum = frameNums[newIdx - 1];
+        } else {
+          // fallback: nếu vẫn không có, chọn smallest available
+          currentFrameNum = frameNums[0];
+        }
+        renderCurrentFrame();
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Could not fetch previous frames: " + err.message);
+      });
   });
 
-
+  // Next
   document.getElementById('nextFrameBtn').addEventListener('click', function () {
+    if (!currentVideoId || currentFrameNum === null) return;
+    const idx = frameNums.indexOf(Number(currentFrameNum));
+
+    if (idx !== -1 && idx < frameNums.length - 1) {
+      currentFrameNum = frameNums[idx + 1];
+      renderCurrentFrame();
+      return;
+    }
+
+    // at end -> fetch next batch anchored at current+1
+    const anchor = Number(currentFrameNum) + 1;
     const btn = this;
     btn.disabled = true;
-
-    if (currentIdx < framesCache.length - 1) {
-      currentIdx++;
-      renderFrames(framesCache, currentIdx);
-      btn.disabled = false;
-    } else {
-      const lastFrame = framesCache[currentIdx];
-      fetchNeighboringFrames(lastFrame.video_id, lastFrame.frame_num + 1)
-        .then(frames => {
-          if (frames.length > 0) {
-            framesCache = frames;
-            // instead of starting at first, keep same index if available
-            if (currentIdx >= framesCache.length) currentIdx = framesCache.length - 1;
-            renderFrames(framesCache, currentIdx);
-          }
-        })
-        .catch(err => alert("Could not fetch more frames: " + err.message))
-        .finally(() => btn.disabled = false);
-    }
+    fetchNeighboringFrames(currentVideoId, anchor)
+      .then(frames => {
+        mergeFrames(frames);
+        const newIdx = frameNums.indexOf(Number(currentFrameNum));
+        if (newIdx !== -1 && newIdx < frameNums.length - 1) {
+          currentFrameNum = frameNums[newIdx + 1];
+        } else {
+          // fallback: highest available
+          currentFrameNum = frameNums[frameNums.length - 1];
+        }
+        renderCurrentFrame();
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Could not fetch next frames: " + err.message);
+      })
+      .finally(() => btn.disabled = false);
   });
-
-
 </script>
+
+
 </body>
 </html>
