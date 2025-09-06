@@ -25,7 +25,7 @@ PALETTE = [
     "#E65100", "#5D4037", "#3E2723", "#263238"
 ]
 # Initialize Faiss with all models
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cuda:1" if torch.cuda.is_available() else "cpu"
 # SIGLIP_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_siglip_L2.bin")
 SIGLIP_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_siglip_L2.bin")
 SIGLIP_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_siglip2.json")
@@ -35,8 +35,10 @@ INTERNVIDEO2_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_InternVideo2_L2.bi
 INTERNVIDEO2_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_internvideo2.json")
 BLIP2_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_blip2_L2.bin")  # Added BLIP-2 FAISS index
 BLIP2_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_blip2_L2.json")  # Added BLIP-2 JSON metadata
-PECORE_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_pecore_L2.bin")
-PECORE_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_pecore.json")
+# PECORE_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_pecore_L2.bin")
+# PECORE_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_pecore.json")
+PECORE_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_pecore_scene_frame.bin")
+PECORE_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_pecore_scene_frame.json")
 
 faiss_index = None
 def color_for_video(video_id: str) -> str:
@@ -91,9 +93,9 @@ def sample_images_from_videos(num_images=30, images_per_video=(3, 4)):
 
 # # try:
 faiss_index = Faiss(
-    bin_files=[INTERNVIDEO2_FAISS_BIN, PECORE_FAISS_BIN],
-    dict_jsons=[INTERNVIDEO2_JSON, PECORE_JSON],
-    model_types=["internvideo2", "pe_core"],
+    bin_files=[SIGLIP_FAISS_BIN, INTERNVIDEO2_FAISS_BIN, PECORE_FAISS_BIN],
+    dict_jsons=[SIGLIP_JSON, INTERNVIDEO2_JSON, PECORE_JSON],
+    model_types=["siglip2", "internvideo2", "pe_core"],
     device=device
 )
 # faiss_index = Faiss(
@@ -184,16 +186,17 @@ def text_search():
     images = []
     for idx, hits in enumerate(results):
         for hit in hits:
-            if model_type == "internvideo2":
-                frame_paths = hit["paths"]   # now a list
+            if model_type in ["internvideo2", "pe_core"] and "paths" in hit:
+                frame_paths = hit["paths"]  
                 if not frame_paths:
                     continue
-                # Representative frame (first one)
+                
                 rep_img = frame_paths[0]
                 parts = rep_img.split("/")
                 video_id = parts[-2] if len(parts) >= 2 else ""
                 frame_num = parts[-1].split(".")[0] if len(parts) >= 1 else ""
                 vid_color = color_for_video(video_id)
+                
                 for p in frame_paths:
                     images.append({
                         "image_url": f"/data_aichallenge2025/{p}",   # each frame instead of only rep_img
@@ -204,7 +207,8 @@ def text_search():
                         "index_id": idx + 1,
                         "scene_frames": [f"/data_aichallenge2025/{fp}" for fp in frame_paths]  # keep all scene frames
                     })
-            else:
+            # else:
+            elif "path" in hit:
                 # Handle single-frame results
                 img_path = hit["path"]
                 if img_path == "unknown":

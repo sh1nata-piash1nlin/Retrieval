@@ -224,7 +224,7 @@ function renderSlider(frames, initialFrameNum) {
     // Fetch more frames if at edges and multiple frames are expected
     if (frames.length > 1 && (activeIndex === 0 || activeIndex === frames.length - 1)) {
       const activeTab = document.querySelector('#resultTabs .nav-link.active');
-      const modelType = activeTab ? activeTab.getAttribute('data-model') : "pe_core"; // Ensure modelType is defined
+      const modelType = activeTab ? activeTab.getAttribute('data-model') : "siglip2"; // Ensure modelType is defined
       fetchNeighboringFrames(currentFrame.video_id, currentFrame.frame_num, modelType)
         .then(newFrames => {
           if (newFrames.length === 0) {
@@ -269,7 +269,7 @@ function renderResults(results, container) {
     const labelElement = imgCard.querySelector('.img-label'); // Define labelElement
     const numberElement = imgCard.querySelector('.img-number'); // Define numberElement
     const activeTab = document.querySelector('#resultTabs .nav-link.active');
-    const modelType = activeTab ? activeTab.getAttribute('data-model') : "pe_core";
+    const modelType = activeTab ? activeTab.getAttribute('data-model') : "siglip2";
     const topK = document.getElementById('kValue')?.value || 30;
 
     // Click on image for similarity search
@@ -432,7 +432,7 @@ function openTab(label) {
           return;
         }
         const topK = kValueInput ? kValueInput.value : 30;
-        handleImageSearch(file, 'pe_core', topK, resultsContainer); // Adjust model_type as needed
+        handleImageSearch(file, 'siglip2', topK, resultsContainer); // Adjust model_type as needed
       });
     } else {
       searchBtn.addEventListener('click', () => {
@@ -451,7 +451,7 @@ function openTab(label) {
           'OCR Match': 'siglip2', 
           'PE Search': 'pe_core', // Map to available model; adjust as needed
           'Subtitle Match': 'siglip2' // Map to available model; adjust as needed
-        }[label] || 'pe_core';
+        }[label] || 'siglip2';
         handleTextSearch(query, modelType, topK, resultsContainer);
       });
     }

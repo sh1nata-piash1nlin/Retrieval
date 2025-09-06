@@ -143,14 +143,12 @@ class Faiss:
         with open(file_json, "r") as file:
             data = json.load(file)
         
-        if model_type == "internvideo2":
-            # For InternVideo2, expect nested lists where each sublist is a scene
-            if isinstance(data, list) and all(isinstance(item, list) for item in data):
-                return {"paths": data}  # Keep as list of lists (scenes)
+        if model_type in ["internvideo2", "pe_core"]:
+            if isinstance(data, list) and all(isinstance(item, (str, list)) for item in data):
+                return {"paths": data}
             else:
-                raise ValueError(f"Expected nested list for InternVideo2 JSON in {file_json}")
+                raise ValueError(f"Expected list[str] or list[list[str]] for {model_type} JSON in {file_json}")
         else:
-            # For SigLIP/FDP, expect a flat list of single frame paths
             if isinstance(data, list) and all(isinstance(item, str) for item in data):
                 return {"paths": data}  # Single list of frame paths
             else:
@@ -294,22 +292,20 @@ class Faiss:
             hits = []
             for dist, idx in zip(distances[0], indices[0]):
                 if idx < len(metadata["paths"]):
-                    if model_type == "internvideo2":
-                        # Keep the whole scene as one hit (list of frame paths)
+                    entry = metadata["paths"][int(idx)]
+                    if isinstance(entry, list):
                         hit = {
                             "id": int(idx),
                             "score": float(dist),
-                            "paths": metadata["paths"][int(idx)]  # full list of frame paths
+                            "paths": entry 
                         }
-                        hits.append(hit)
                     else:
-                        # Return single frame path
                         hit = {
                             "id": int(idx),
                             "score": float(dist),
-                            "path": metadata["paths"][int(idx)]
+                            "path": entry
                         }
-                        hits.append(hit)
+                    hits.append(hit)
                 else:
                     hit = {
                         "id": int(idx),
@@ -354,21 +350,20 @@ class Faiss:
             hits = []
             for dist, idx in zip(distances[0], indices[0]):
                 if idx < len(metadata["paths"]):
-                    if model_type == "internvideo2":
+                    entry = metadata["paths"][int(idx)]
+                    if isinstance(entry, list):
                         hit = {
                             "id": int(idx),
                             "score": float(dist),
-                            "path": metadata["paths"][int(idx)]  
+                            "paths": entry 
                         }
-                        hits.append(hit)
                     else:
-                        # Return single frame path
                         hit = {
                             "id": int(idx),
                             "score": float(dist),
-                            "path": metadata["paths"][int(idx)]
+                            "path": entry
                         }
-                        hits.append(hit)
+                    hits.append(hit)
                 else:
                     hit = {
                         "id": int(idx),
