@@ -1,88 +1,59 @@
-# import faiss
-# import json
-# import numpy as np
-# from pathlib import Path
-
-# # ---------------- JSON merge ----------------
-# # Load batch1 map
-# with open("/workspace/data_aichallenge2025/output_bin/results_batch1/keyframes_id.json", "r") as f:
-#     map1 = json.load(f)
-
-# # Load old batch2 map (still points to original webp structure)
-# with open("/workspace/data_aichallenge2025/output_bin/results-batch2/keyframes_id_batch2.json", "r") as f:
-#     old_map2 = json.load(f)
-
-# # Convert batch2 paths to match JPEG keyframes like map1
-# DST_ROOT = Path("keyframes")  # relative to /workspace/data_aichallenge2025
-# new_map2 = []
-# for old_path in old_map2:
-#     parts = Path(old_path).parts[-3:]  # ("Kxx","Vxx","000016.webp")
-#     Kxx, Vxx, fname = parts
-#     new_path = Path(f"keyframes_Videos_{Kxx}") / "keyframes" / f"{Kxx}_{Vxx}" / Path(fname).with_suffix(".jpg")
-#     new_map2.append(str(new_path))
-
-# map2 = new_map2
-
-# # Merge JSON
-# merged_map = map1 + map2
-# json_out_path = "/workspace/data_aichallenge2025/output_bin/keyframes_id_search_blip2.json"
-# with open(json_out_path, "w") as f:
-#     json.dump(merged_map, f, indent=2)
-
-# # print(f"✅ Merged JSON saved with {len(merged_map)} entries at {json_out_path}")
-
-# # # ---------------- FAISS merge ----------------
-# # index1_path = "/workspace/data_aichallenge2025/output_bin/results_batch1/image_index_l2.bin"
-# # index2_path = "/workspace/data_aichallenge2025/output_bin/results-batch2/image_index_l2_batch2.bin"
-# # faiss_out_path = "/workspace/data_aichallenge2025/output_bin/faiss_blip2_l2.bin"
-
-# # # Load indexes
-# # index1 = faiss.read_index(index1_path)
-# # index2 = faiss.read_index(index2_path)
-
-# # # Reconstruct all vectors from index2
-# # xb = index2.reconstruct_n(0, index2.ntotal)
-
-# # # Generate shifted IDs for batch2 vectors
-# # start_id = index1.ntotal
-# # ids = np.arange(start_id, start_id + index2.ntotal)
-
-# # # Add batch2 vectors with explicit IDs (IndexIDMap)
-# # index1.add_with_ids(xb, ids)
-
-# # # Save merged FAISS index
-# # faiss.write_index(index1, faiss_out_path)
-
-# # print(f"✅ Merged FAISS index saved with {index1.ntotal} vectors at {faiss_out_path}")
-
-# # # ---------------- Sanity check ----------------
-# # assert len(merged_map) == index1.ntotal, "❌ JSON paths and FAISS vectors count mismatch!"
-# # print("✅ Sanity check passed: JSON and FAISS index are aligned.")
-
 import json
 import os
+import faiss
 
-# Define file paths relative to huy_aichallenge directory
-file1 = "../data_aichallenge2025/output_bin/metadata.json"
-file2 = "../data_aichallenge2025/output_bin/metadata_batch2.json"  # Corrected potential typo in file name
+# Input files
+file1 = "../data_aichallenge2025/output_bin/metadata_qwen_batch1.json"
+file2 = "../data_aichallenge2025/output_bin/metadata_qwen_batch2.json"
+bin1 = "../data_aichallenge2025/output_bin/asr_qwenembedding_batch1.bin"
+bin2 = "../data_aichallenge2025/output_bin/asr_qwenembedding_batch2.bin"
 
-# Check if files exist
-if not os.path.exists(file1):
-    print(f"Error: File not found: {file1}")
-    exit(1)
-if not os.path.exists(file2):
-    print(f"Error: File not found: {file2}")
-    exit(1)
+# Output
+json_out_path = "../data_aichallenge2025/output_bin/keyframes_id_search_qwen3.json"
+bin_out_path = "../data_aichallenge2025/output_bin/faiss_qwen3_cosine.bin"
 
-# Load JSON files
-with open(file1, "r") as f:
+# Check files exist
+for f in [file1, file2, bin1, bin2]:
+    if not os.path.exists(f):
+        raise FileNotFoundError(f"File not found: {f}")
+
+# Load metadata
+with open(file1, "r", encoding="utf-8") as f:
     map1 = json.load(f)
-with open(file2, "r") as f:
+with open(file2, "r", encoding="utf-8") as f:
     map2 = json.load(f)
 
-# Merge JSON
 merged_map = map1 + map2
-json_out_path = "../data_aichallenge2025/output_bin/keyframes_id_search_asr.json"
-with open(json_out_path, "w") as f:
-    json.dump(merged_map, f, indent=2)
-print(f"Merged JSON saved to {json_out_path}")
+
+# ---- Convert to list of frame path lists ----
+scene_groups = []
+for seg in merged_map:
+    video_id = seg["video"].replace(".mp4", "")
+    start, end = seg["start_frame"], seg["end_frame"]
+
+    # Build frame paths (step = 1 frame, bạn có thể thay đổi step nếu muốn thưa hơn)
+    frame_paths = [
+        f"keyframes_Videos_{video_id[:3]}/keyframes/{video_id}/{frame:06d}.jpg"
+        for frame in range(start, end + 1)
+    ]
+
+    if frame_paths:
+        scene_groups.append(frame_paths)
+
+# Save new JSON
+with open(json_out_path, "w", encoding="utf-8") as f:
+    json.dump(scene_groups, f, indent=2, ensure_ascii=False)
+print(f"Merged+converted JSON saved to {json_out_path} ({len(scene_groups)} groups)")
+
+# ---- Merge FAISS indices ----
+index1 = faiss.read_index(bin1)
+index2 = faiss.read_index(bin2)
+
+if index1.d != index2.d:
+    raise ValueError(f"Dimension mismatch: {index1.d} vs {index2.d}")
+
+xb = index2.reconstruct_n(0, index2.ntotal)
+index1.add(xb)
+
+faiss.write_index(index1, bin_out_path)
+print(f"Merged FAISS index saved to {bin_out_path}, total={index1.ntotal}")

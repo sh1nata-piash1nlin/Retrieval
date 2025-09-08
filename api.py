@@ -39,7 +39,8 @@ BLIP2_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_blip2_L2.json") 
 # PECORE_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_pecore.json")
 PECORE_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_pecore_scene_frame.bin")
 PECORE_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_pecore_scene_frame.json")
-
+QWEN3_FAISS_BIN = str(DATA_DIR / "output_bin" / "faiss_qwen3_cosine.bin")
+QWEN3_JSON = str(DATA_DIR / "output_bin" / "keyframes_id_search_qwen3.json")
 faiss_index = None
 def color_for_video(video_id: str) -> str:
     if not video_id:
@@ -93,9 +94,9 @@ def sample_images_from_videos(num_images=30, images_per_video=(3, 4)):
 
 # # try:
 faiss_index = Faiss(
-    bin_files=[SIGLIP_FAISS_BIN, INTERNVIDEO2_FAISS_BIN, PECORE_FAISS_BIN],
-    dict_jsons=[SIGLIP_JSON, INTERNVIDEO2_JSON, PECORE_JSON],
-    model_types=["siglip2", "internvideo2", "pe_core"],
+    bin_files=[SIGLIP_FAISS_BIN, INTERNVIDEO2_FAISS_BIN, PECORE_FAISS_BIN, QWEN3_FAISS_BIN],
+    dict_jsons=[SIGLIP_JSON, INTERNVIDEO2_JSON, PECORE_JSON, QWEN3_JSON],
+    model_types=["siglip2", "internvideo2", "pe_core", "qwen3"],
     device=device
 )
 # faiss_index = Faiss(
@@ -173,7 +174,7 @@ def text_search():
     query = request.form.get("query")
     top_k = int(request.form.get("top_k", 30))
     model_type = request.form.get("model_type", "siglip2")
-    if model_type not in ["siglip2", "fdp", "internvideo2", "blip2","pe_core"]:
+    if model_type not in ["siglip2", "fdp", "internvideo2", "blip2","pe_core","qwen3"]:
         return jsonify({"error": "Invalid model_type, must be 'siglip2', 'fdp', or 'internvideo2'"}), 400
     if not query or not faiss_index:
         return jsonify({"error": "Missing query or index not loaded"}), 400
@@ -198,11 +199,13 @@ def text_search():
                 vid_color = color_for_video(video_id)
                 
                 for p in frame_paths:
+                    parts_p = p.split("/")
+                    frame_num_p = parts_p[-1].split(".")[0] if len(parts_p) >= 1 else ""
                     images.append({
                         "image_url": f"/data_aichallenge2025/{p}",   # each frame instead of only rep_img
                         "score": float(hit["score"]),
                         "video_id": video_id,
-                        "frame_num": frame_num,
+                        "frame_num": frame_num_p,
                         "border_color": vid_color,
                         "index_id": idx + 1,
                         "scene_frames": [f"/data_aichallenge2025/{fp}" for fp in frame_paths]  # keep all scene frames
@@ -225,7 +228,7 @@ def text_search():
                     "border_color": vid_color,
                     "index_id": idx + 1,
                 })
-    # print(images)
+    print(images)
     return jsonify({"results": images})
 
 

@@ -14,6 +14,7 @@ from utils.query_processing import Translation
 import json
 import clip
 from models.blip2.blip2 import BLIP2Model
+from sentence_transformers import SentenceTransformer
 
 import models.perception_models.core.vision_encoder.pe as pe
 import models.perception_models.core.vision_encoder.transforms as transforms
@@ -119,6 +120,13 @@ class Faiss:
             self.pe_core_model = None
             self.pe_core_preprocess = None
             self.pe_core_tokenizer = None
+
+        # Qwen3 Embedding for ASR
+        if "qwen3" in model_types:
+            print("Loading Qwen3 Embedding model...")
+            self.qwen3_model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B", device=self.device)
+        else:
+            self.qwen3_model = None
         self.dimension = self.indexes[0].d if self.indexes else None
     def _get_preprocess(self, input_resolution=640):
         """Returns the preprocessing pipeline for CustomCLIP images."""
@@ -143,16 +151,43 @@ class Faiss:
         with open(file_json, "r") as file:
             data = json.load(file)
         
-        if model_type in ["internvideo2", "pe_core"]:
+        if model_type in ["internvideo2", "pe_core", "qwen3"]:
             if isinstance(data, list) and all(isinstance(item, (str, list)) for item in data):
                 return {"paths": data}
             else:
                 raise ValueError(f"Expected list[str] or list[list[str]] for {model_type} JSON in {file_json}")
         else:
             if isinstance(data, list) and all(isinstance(item, str) for item in data):
-                return {"paths": data}  # Single list of frame paths
+                return {"paths": data} 
             else:
                 raise ValueError(f"Expected flat list of strings for {model_type} JSON in {file_json}")
+    def _merge_frame_and_scene(self, hits, metadata):
+        """
+        Merge duplicates: if a frame and its scene both appear,
+        keep only the scene entry with the best score.
+        """
+        frame_to_scene = metadata.get("frame_to_scene", {})
+        scene_best = {}
+
+        for h in hits:
+            if "paths" in h:  # scene hit
+                scene_id = h["paths"][0].split("/")[2]
+                if scene_id not in scene_best or h["score"] > scene_best[scene_id]["score"]:
+                    scene_best[scene_id] = h
+            else:  # frame hit
+                frame = h["path"]
+                scene_id = frame_to_scene.get(frame, frame.split("/")[2])
+                # Convert frame hit → scene-level hit
+                scene_hit = {
+                    "id": h["id"],
+                    "score": h["score"],
+                    "paths": [frame] if scene_id not in scene_best else scene_best[scene_id].get("paths", []) + [frame]
+                }
+                if scene_id not in scene_best or h["score"] > scene_best[scene_id]["score"]:
+                    scene_best[scene_id] = scene_hit
+
+        # return sorted by score (higher = earlier rank)
+        return sorted(scene_best.values(), key=lambda x: x["score"], reverse=True)
 
     def embed_text(self, text: str, model_type: str = "internvideo2") -> np.ndarray:
         """Generate embedding for a single text query using specified model."""
@@ -179,6 +214,17 @@ class Faiss:
                 inputs = self.pe_core_tokenizer([text]).to(self.device)
                 feats = self.pe_core_model.encode_text(inputs, normalize=True)
             return feats.cpu().numpy().astype(np.float32).flatten()
+        elif model_type == "qwen3":
+            if self.qwen3_model is None:
+                raise ValueError("Qwen3 model not initialized")
+            feats = self.qwen3_model.encode(
+                [text],
+                batch_size=1,
+                normalize_embeddings=True,
+                convert_to_numpy=True,
+                show_progress_bar=False
+            )
+            return feats[0].astype(np.float32)
         else:
             raise ValueError("model_type must be 'siglip2', 'fdp', or 'internvideo2'")
 
@@ -255,7 +301,7 @@ class Faiss:
             lang = detect(query_text)
         except Exception:
             lang = "en"
-        if lang == "vi":
+        if lang == "vi" and model_type != "qwen3":
             query_text = self.translate(text=query_text)
         print(query_text, model_type)
         vec = self.embed_text(query_text, model_type=model_type)

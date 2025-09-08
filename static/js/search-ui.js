@@ -249,47 +249,82 @@ function renderSlider(frames, initialFrameNum) {
 }
 
 
+// Group results by video_id
+function groupByVideo(results) {
+  const grouped = {};
+  results.forEach(item => {
+    if (!grouped[item.video_id]) {
+      grouped[item.video_id] = {
+        video_id: item.video_id,
+        border_color: item.border_color,
+        frames: []
+      };
+    }
+    grouped[item.video_id].frames.push(item);
+  });
 
-// Function to render search results
+  // sắp xếp frame theo số thứ tự
+  Object.values(grouped).forEach(group => {
+    group.frames.sort((a, b) => parseInt(a.frame_num) - parseInt(b.frame_num));
+  });
+
+  return Object.values(grouped);
+}
+
+// Render grouped results
 function renderResults(results, container) {
-  container.innerHTML = ''; // Clear previous results
-  results.forEach(result => {
-    const col = document.createElement('div');
-    col.className = 'col';
-    col.innerHTML = `
-      <div class="img-card" style="border-color: ${result.border_color};">
-        <img src="${result.image_url}" alt="Frame" />
-        <div class="img-label" style="--img-label-color: ${result.border_color};">${result.video_id}</div>
+  container.innerHTML = '';
+  const grouped = groupByVideo(results);
+
+  grouped.forEach(group => {
+    // Wrapper mỗi video
+    const videoBlock = document.createElement('div');
+    videoBlock.className = 'video-block';
+
+    // Label cho video
+    const label = document.createElement('div');
+    label.className = 'video-label fw-bold mb-2';
+    label.style.borderLeft = `5px solid ${group.border_color}`;
+    label.textContent = group.video_id;
+    videoBlock.appendChild(label);
+
+    // Hàng ngang chứa frames
+    const frameRow = document.createElement('div');
+    frameRow.className = 'frame-row'; //'d-flex flex-row flex-nowrap overflow-auto gap-2 pb-2';
+
+    group.frames.forEach(result => {
+      const card = document.createElement('div');
+      card.className = 'img-card flex-shrink-0';
+      card.style.borderColor = group.border_color;
+      card.innerHTML = `
+        <img src="${result.image_url}" alt="Frame" style="max-height:120px; object-fit:cover;" />
         <div class="img-number">${result.frame_num}</div>
         ${result.score !== undefined ? `<div class="img-score">Score: ${result.score.toFixed(3)}</div>` : ''}
-      </div>
-    `;
-    const imgCard = col.querySelector('.img-card');
-    const imgElement = imgCard.querySelector('img'); // Define imgElement
-    const labelElement = imgCard.querySelector('.img-label'); // Define labelElement
-    const numberElement = imgCard.querySelector('.img-number'); // Define numberElement
-    const activeTab = document.querySelector('#resultTabs .nav-link.active');
-    const modelType = activeTab ? activeTab.getAttribute('data-model') : "siglip2";
-    const topK = document.getElementById('kValue')?.value || 30;
+      `;
 
-    // Click on image for similarity search
-    imgElement.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent event from bubbling to parent
-      fetch(result.image_url)
-        .then(res => res.blob())
-        .then(blob => {
-          const file = new File([blob], "clicked.jpg", { type: blob.type });
-          handleImageSearch(file, modelType, topK, container);
-        })
-        .catch(err => {
-          console.error("Error fetching clicked image:", err);
-          alert("Could not load image for search.");
-        });
-    });
+      const imgElement = card.querySelector('img');
+      const numberElement = card.querySelector('.img-number');
+      const activeTab = document.querySelector('#resultTabs .nav-link.active');
+      const modelType = activeTab ? activeTab.getAttribute('data-model') : "siglip2";
+      const topK = document.getElementById('kValue')?.value || 30;
 
-    // Click on label or frame number for neighboring frames
-    [labelElement, numberElement].forEach(element => {
-      element.addEventListener('click', (e) => {
+      // Click ảnh → search tương tự
+      imgElement.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fetch(result.image_url)
+          .then(res => res.blob())
+          .then(blob => {
+            const file = new File([blob], "clicked.jpg", { type: blob.type });
+            handleImageSearch(file, modelType, topK, container);
+          })
+          .catch(err => {
+            console.error("Error fetching clicked image:", err);
+            alert("Could not load image for search.");
+          });
+      });
+
+      // Click số frame → xem neighboring
+      numberElement.addEventListener('click', (e) => {
         e.stopPropagation();
         fetchNeighboringFrames(result.video_id, result.frame_num, modelType)
           .then(frames => {
@@ -300,11 +335,16 @@ function renderResults(results, container) {
             alert("Could not load neighboring frames.");
           });
       });
+
+      frameRow.appendChild(card);
     });
 
-    container.appendChild(col);
+    videoBlock.appendChild(frameRow);
+    container.appendChild(videoBlock);
   });
 }
+
+
 // Function to handle text-based search
 function handleTextSearch(query, modelType, topK, resultsContainer) {
   const formData = new FormData();
@@ -450,7 +490,7 @@ function openTab(label) {
           'FDP Search': 'fdp',
           'OCR Match': 'siglip2', 
           'PE Search': 'pe_core', // Map to available model; adjust as needed
-          'Subtitle Match': 'siglip2' // Map to available model; adjust as needed
+          'Subtitle Match': 'qwen3' // Map to available model; adjust as needed
         }[label] || 'siglip2';
         handleTextSearch(query, modelType, topK, resultsContainer);
       });
